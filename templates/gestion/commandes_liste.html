@@ -1,0 +1,71 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Commandes{% endblock %}
+{% block titre_page %}Commandes{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Les commandes passées sur le site. Le client paie à la livraison, en espèces ou par Mobile Money.</p>{% endblock %}
+
+{% block contenu %}
+<nav class="onglets mb-3" aria-label="Filtrer par statut">
+  {% for o in onglets %}
+    <a href="?{% if o.valeur %}statut={{ o.valeur }}{% endif %}{% if q %}{% if o.valeur %}&amp;{% endif %}q={{ q|urlencode }}{% endif %}" class="{% if statut == o.valeur %}active{% endif %}" {% if statut == o.valeur %}aria-current="page"{% endif %}>
+      {{ o.libelle }} <span class="n">{{ o.n }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+<section class="carte">
+  <form method="get" class="carte-entete" role="search">
+    {% if statut %}<input type="hidden" name="statut" value="{{ statut }}">{% endif %}
+    <div class="input-group" style="max-width: 380px">
+      <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+      <label class="visually-hidden" for="recherche-commande">Rechercher une commande</label>
+      <input type="search" id="recherche-commande" name="q" value="{{ q }}" class="form-control" placeholder="Numéro, nom, téléphone ou ville">
+    </div>
+    <button type="submit" class="btn btn-contour">Rechercher</button>
+  </form>
+
+  {% if commandes %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr><th scope="col">Commande</th><th scope="col">Client</th><th scope="col">Livraison</th><th scope="col">Articles</th><th scope="col">Total</th><th scope="col">Statut</th><th scope="col">Paiement</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+        </thead>
+        <tbody>
+          {% for c in commandes %}
+            <tr>
+              <td><a href="{% url 'gestion:commande_detail' c.pk %}" class="fw-semibold">{{ c.numero }}</a><div class="small text-body-secondary">{{ c.date_creation|date:"d/m/Y H:i" }}</div></td>
+              <td>{{ c.nom_client }}<div class="small text-body-secondary">{{ c.telephone }}</div></td>
+              <td>{{ c.ville }}<div class="small text-body-secondary">{{ c.lieu_livraison|truncatechars:40 }}</div></td>
+              <td>{{ c.nombre_articles }}</td>
+              <td class="fw-semibold text-nowrap">{{ c.total|fcfa }}</td>
+              <td><span class="etiquette statut-{{ c.statut }}">{{ c.get_statut_display }}</span></td>
+              <td>{% include "gestion/_paiement.html" with c=c %}<div class="small text-body-secondary mt-1">{{ c.get_mode_paiement_display }}</div></td>
+              <td class="text-end text-nowrap">
+                {% if c.statut != 'annulee' %}
+                  <form method="post" action="{% url 'gestion:commande_paiement' c.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="suivant" value="{{ request.get_full_path }}">
+                    {% if c.paiement_recu %}
+                      <button type="submit" class="btn btn-contour btn-sm" aria-label="Marquer la commande {{ c.numero }} comme non payée">Annuler le paiement</button>
+                    {% else %}
+                      <button type="submit" class="btn btn-or btn-sm" aria-label="Marquer la commande {{ c.numero }} comme payée"><i class="bi bi-cash" aria-hidden="true"></i> Payée</button>
+                    {% endif %}
+                  </form>
+                {% endif %}
+                <a href="{% url 'gestion:commande_detail' c.pk %}" class="btn btn-contour btn-icone" aria-label="Ouvrir la commande {{ c.numero }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "gestion/_pagination.html" with page_obj=commandes %}
+  {% else %}
+    <div class="vide-etat">
+      <i class="bi bi-bag" aria-hidden="true"></i>
+      <h3>Aucune commande</h3>
+      <p class="mb-0">{% if q or statut %}Aucune commande ne correspond à ce filtre.{% else %}Les commandes passées sur le site apparaîtront ici.{% endif %}</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Commande {{ commande.numero }}{% endblock %}
+{% block titre_page %}Commande {{ commande.numero }}{% endblock %}
+{% block sous_titre %}<p class="sous-titre"><a href="{% url 'gestion:commandes_liste' %}" class="text-decoration-none"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour aux commandes</a> · passée le {{ commande.date_creation|date:"d/m/Y à H:i" }}</p>{% endblock %}
+{% block actions %}
+  <a href="https://wa.me/{{ commande.telephone_whatsapp }}?text={{ message_client|urlencode }}" target="_blank" rel="noopener" class="btn btn-or"><i class="bi bi-whatsapp" aria-hidden="true"></i> Écrire au client</a>
+  <a href="tel:{{ commande.telephone }}" class="btn btn-contour"><i class="bi bi-telephone" aria-hidden="true"></i> Appeler</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="row g-3">
+  <div class="col-lg-8">
+    <section class="carte mb-3">
+      <div class="carte-entete">
+        <h2>Articles</h2>
+        <span class="etiquette statut-{{ commande.statut }}">{{ commande.get_statut_display }}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th scope="col">Produit</th><th scope="col">Prix unitaire</th><th scope="col">Quantité</th><th scope="col" class="text-end">Sous-total</th></tr></thead>
+          <tbody>
+            {% for l in commande.lignes.all %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-3">
+                    {% if l.produit and l.produit.image %}<img src="{{ l.produit.image.url }}" alt="" class="vignette">{% else %}<span class="vignette"><i class="bi bi-image" aria-hidden="true"></i></span>{% endif %}
+                    <span class="fw-semibold">{{ l.nom_produit }}</span>
+                  </div>
+                </td>
+                <td class="text-nowrap">{{ l.prix_unitaire|fcfa }}</td>
+                <td>× {{ l.quantite }}</td>
+                <td class="text-end fw-semibold text-nowrap">{{ l.sous_total|fcfa }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-body-secondary">Aucun article.</td></tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr><th scope="row" colspan="3" class="text-end">Total à payer à la livraison</th><td class="text-end titre-serif fs-4 text-nowrap" style="color:var(--mo-bordeaux)">{{ commande.total|fcfa }}</td></tr>
+            <tr><td colspan="4" class="text-end">{% include "gestion/_paiement.html" with c=commande %} <span class="small text-body-secondary ms-1">{{ commande.get_mode_paiement_display }}</span></td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    {% if commande.note %}
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Message du client</h2></div>
+        <div class="carte-corps">{{ commande.note|linebreaksbr }}</div>
+      </section>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <section class="carte mb-3">
+      <div class="carte-entete"><h2>Client</h2></div>
+      <div class="carte-corps">
+        <dl class="row mb-0 small">
+          <dt class="col-5 text-body-secondary fw-normal">Nom</dt><dd class="col-7 fw-semibold">{{ commande.nom_client }}</dd>
+          <dt class="col-5 text-body-secondary fw-normal">Téléphone</dt><dd class="col-7 fw-semibold">{{ commande.telephone }}</dd>
+          <dt class="col-5 text-body-secondary fw-normal">Ville</dt><dd class="col-7 fw-semibold">{{ commande.ville }}</dd>
+          <dt class="col-5 text-body-secondary fw-normal">Livraison</dt><dd class="col-7 fw-semibold mb-0">{{ commande.lieu_livraison }}</dd>
+        </dl>
+      </div>
+    </section>
+
+    <form method="post" class="carte mb-3">
+      {% csrf_token %}
+      <div class="carte-entete"><h2>Suivi</h2></div>
+      <div class="carte-corps">
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.statut.id_for_label }}">Statut</label>
+          {{ form.statut }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.mode_paiement.id_for_label }}">Paiement à la livraison</label>
+          {{ form.mode_paiement }}
+        </div>
+        <div class="form-check form-switch mb-3">
+          {{ form.paiement_recu }}
+          <label class="form-check-label" for="{{ form.paiement_recu.id_for_label }}">Paiement reçu{% if commande.date_paiement %} <span class="text-body-secondary small">(le {{ commande.date_paiement|date:"d/m/Y à H:i" }})</span>{% endif %}</label>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="{{ form.note_interne.id_for_label }}">Note interne</label>
+          {{ form.note_interne }}
+          <div class="form-text">{{ form.note_interne.help_text }}</div>
+        </div>
+        <button type="submit" class="btn btn-mo w-100"><i class="bi bi-check2" aria-hidden="true"></i> Mettre à jour</button>
+      </div>
+    </form>
+
+    <section class="carte">
+      <div class="carte-entete"><h2>Message au client</h2></div>
+      <div class="carte-corps">
+        <label class="visually-hidden" for="message-client">Message prêt à envoyer</label>
+        <textarea id="message-client" class="form-control mb-2" rows="4" readonly>{{ message_client }}</textarea>
+        <button type="button" class="btn btn-contour w-100" data-copier="message-client"><i class="bi bi-clipboard" aria-hidden="true"></i> Copier le message</button>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

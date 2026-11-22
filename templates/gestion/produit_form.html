@@ -1,0 +1,108 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}{% if produit %}Modifier {{ produit.nom }}{% else %}Nouveau produit{% endif %}{% endblock %}
+{% block titre_page %}{% if produit %}Modifier le produit{% else %}Nouveau produit{% endif %}{% endblock %}
+{% block sous_titre %}<p class="sous-titre"><a href="{% url 'gestion:produits_liste' %}" class="text-decoration-none"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour aux produits</a></p>{% endblock %}
+
+{% block contenu %}
+<form method="post" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Informations</h2></div>
+        <div class="carte-corps">
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.nom.id_for_label }}">Nom du produit</label>
+            {{ form.nom }}
+            {% for e in form.nom.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.categorie.id_for_label }}">Catégorie</label>
+            <div class="d-flex gap-2">
+              {{ form.categorie }}
+              <a href="{% url 'gestion:categorie_ajouter' %}" class="btn btn-contour text-nowrap" target="_blank" rel="noopener"><i class="bi bi-plus" aria-hidden="true"></i> Nouvelle</a>
+            </div>
+            {% for e in form.categorie.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div>
+            <label class="form-label" for="{{ form.description.id_for_label }}">Description <span class="fw-normal text-body-secondary">(facultatif)</span></label>
+            {{ form.description }}
+          </div>
+        </div>
+      </section>
+
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Prix et promotion</h2></div>
+        <div class="carte-corps">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label" for="{{ form.prix.id_for_label }}">Prix normal</label>
+              <div class="input-group">{{ form.prix }}<span class="input-group-text">FCFA</span></div>
+              {% for e in form.prix.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="{{ form.prix_promo.id_for_label }}">Prix promo <span class="fw-normal text-body-secondary">(facultatif)</span></label>
+              <div class="input-group">{{ form.prix_promo }}<span class="input-group-text">FCFA</span></div>
+              {% for e in form.prix_promo.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+              <div class="form-text">Videz ce champ pour arrêter la promotion.</div>
+            </div>
+          </div>
+          <div class="mt-3 p-3 rounded-3" style="background:var(--mo-ivoire)" id="resume-prix" aria-live="polite"></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="col-lg-4">
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Photo</h2></div>
+        <div class="carte-corps">
+          <div class="zone-image mb-3" id="apercu-image">
+            {% if produit and produit.image %}
+              <img src="{{ produit.image.url }}" alt="Photo actuelle de {{ produit.nom }}">
+            {% else %}
+              <div class="vide"><i class="bi bi-camera" aria-hidden="true"></i>Aucune photo<br><span class="small">Format carré conseillé</span></div>
+            {% endif %}
+          </div>
+          <label class="form-label" for="{{ form.image.id_for_label }}">{% if produit and produit.image %}Remplacer la photo{% else %}Choisir une photo{% endif %}</label>
+          {{ form.image }}
+          <div class="form-text">JPG, PNG ou WebP, 5 Mo maximum.</div>
+          {% for e in form.image.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          {% if produit and produit.image %}
+            <div class="form-check mt-2">
+              {{ form.supprimer_image }}
+              <label class="form-check-label" for="{{ form.supprimer_image.id_for_label }}">{{ form.supprimer_image.label }}</label>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Affichage</h2></div>
+        <div class="carte-corps d-grid gap-3">
+          <div class="form-check form-switch">
+            {{ form.actif }}
+            <label class="form-check-label" for="{{ form.actif.id_for_label }}">Visible sur le site</label>
+          </div>
+          <div class="form-check form-switch">
+            {{ form.en_stock }}
+            <label class="form-check-label" for="{{ form.en_stock.id_for_label }}">En stock</label>
+          </div>
+          <div class="form-check form-switch">
+            {{ form.mis_en_avant }}
+            <label class="form-check-label" for="{{ form.mis_en_avant.id_for_label }}">Mettre en avant sur l'accueil</label>
+          </div>
+        </div>
+      </section>
+
+      <div class="d-grid gap-2">
+        <button type="submit" class="btn btn-mo py-2"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer</button>
+        {% if not produit %}<button type="submit" name="ajouter_autre" value="1" class="btn btn-contour">Enregistrer et ajouter un autre</button>{% endif %}
+        {% if produit %}<a href="{% url 'gestion:produit_supprimer' produit.pk %}" class="btn btn-contour text-danger"><i class="bi bi-trash3" aria-hidden="true"></i> Supprimer ce produit</a>{% endif %}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

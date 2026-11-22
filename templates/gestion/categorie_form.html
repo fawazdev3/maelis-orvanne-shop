@@ -1,0 +1,38 @@
+{% extends "gestion/base.html" %}
+{% block titre %}{% if categorie %}Modifier {{ categorie.nom }}{% else %}Nouvelle catégorie{% endif %}{% endblock %}
+{% block titre_page %}{% if categorie %}Modifier la catégorie{% else %}Nouvelle catégorie{% endif %}{% endblock %}
+{% block sous_titre %}<p class="sous-titre"><a href="{% url 'gestion:categories_liste' %}" class="text-decoration-none"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour aux catégories</a></p>{% endblock %}
+
+{% block contenu %}
+<form method="post" class="carte" style="max-width: 680px" novalidate>
+  {% csrf_token %}
+  <div class="carte-corps">
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.nom.id_for_label }}">Nom</label>
+      {{ form.nom }}
+      {% for e in form.nom.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description <span class="fw-normal text-body-secondary">(facultatif)</span></label>
+      {{ form.description }}
+    </div>
+    <div class="row g-3 align-items-end">
+      <div class="col-sm-5">
+        <label class="form-label" for="{{ form.ordre.id_for_label }}">Ordre d'affichage</label>
+        {{ form.ordre }}
+        <div class="form-text">{{ form.ordre.help_text }}</div>
+      </div>
+      <div class="col-sm-7">
+        <div class="form-check form-switch mb-2">
+          {{ form.active }}
+          <label class="form-check-label" for="{{ form.active.id_for_label }}">Visible sur le site</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="carte-entete border-top border-bottom-0 justify-content-end">
+    <a href="{% url 'gestion:categories_liste' %}" class="btn btn-contour">Annuler</a>
+    <button type="submit" class="btn btn-mo"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer</button>
+  </div>
+</form>
+{% endblock %}

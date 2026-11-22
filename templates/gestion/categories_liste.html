@@ -1,0 +1,45 @@
+{% extends "gestion/base.html" %}
+{% block titre %}Catégories{% endblock %}
+{% block titre_page %}Catégories{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Organisez vos produits : Thés, puis tout ce que vous ajouterez.</p>{% endblock %}
+{% block actions %}
+  <a href="{% url 'gestion:categorie_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Nouvelle catégorie</a>
+{% endblock %}
+
+{% block contenu %}
+<section class="carte">
+  {% if categories %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr><th scope="col">Catégorie</th><th scope="col">Produits</th><th scope="col">Ordre</th><th scope="col">Visible</th><th scope="col" class="text-end">Actions</th></tr>
+        </thead>
+        <tbody>
+          {% for c in categories %}
+            <tr>
+              <td>
+                <a href="{% url 'gestion:categorie_modifier' c.pk %}" class="fw-semibold text-decoration-none">{{ c.nom }}</a>
+                {% if c.description %}<div class="small text-body-secondary">{{ c.description|truncatechars:80 }}</div>{% endif %}
+              </td>
+              <td><a href="{% url 'gestion:produits_liste' %}?categorie={{ c.pk }}">{{ c.nb_produits }} produit{{ c.nb_produits|pluralize }}</a></td>
+              <td>{{ c.ordre }}</td>
+              <td>{% if c.active %}<span class="etiquette etiquette-ok">Visible</span>{% else %}<span class="etiquette etiquette-off">Cachée</span>{% endif %}</td>
+              <td class="text-end text-nowrap">
+                <a href="{% url 'gestion:categorie_modifier' c.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier {{ c.nom }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                <a href="{% url 'gestion:categorie_supprimer' c.pk %}" class="btn btn-contour btn-icone" aria-label="Supprimer {{ c.nom }}"><i class="bi bi-trash3" aria-hidden="true"></i></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="vide-etat">
+      <i class="bi bi-tags" aria-hidden="true"></i>
+      <h3>Aucune catégorie</h3>
+      <p>Commencez par créer votre première catégorie, par exemple « Thés ».</p>
+      <a href="{% url 'gestion:categorie_ajouter' %}" class="btn btn-mo mt-2"><i class="bi bi-plus-lg" aria-hidden="true"></i> Créer une catégorie</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

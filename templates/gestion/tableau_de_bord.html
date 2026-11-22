@@ -1,0 +1,124 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Tableau de bord{% endblock %}
+{% block titre_page %}Bonjour{% if user.first_name %} {{ user.first_name }}{% endif %}{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Voici l'activité de votre boutique.</p>{% endblock %}
+{% block actions %}
+  <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Ajouter un produit</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3">
+    <a href="{% url 'gestion:commandes_liste' %}?statut=nouvelle" class="carte stat stat-accent text-decoration-none">
+      <span class="stat-libelle"><i class="bi bi-bell" aria-hidden="true"></i> Nouvelles commandes</span>
+      <span class="stat-valeur">{{ nb_commandes_nouvelles }}</span>
+      <span class="stat-note">À confirmer avec le client</span>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="carte stat">
+      <span class="stat-libelle"><i class="bi bi-cash-coin" aria-hidden="true"></i> Encaissé ce mois</span>
+      <span class="stat-valeur">{{ encaisse_mois|fcfa }}</span>
+      <span class="stat-note">Paiements reçus à la livraison ({{ mois_nom }})</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{% url 'gestion:commandes_liste' %}?statut=a_encaisser" class="carte stat text-decoration-none">
+      <span class="stat-libelle"><i class="bi bi-hourglass-split" aria-hidden="true"></i> À encaisser</span>
+      <span class="stat-valeur">{{ montant_a_encaisser|fcfa }}</span>
+      <span class="stat-note">{{ nb_a_encaisser }} commande{{ nb_a_encaisser|pluralize }} pas encore payée{{ nb_a_encaisser|pluralize }} · {{ nb_commandes_jour }} aujourd'hui</span>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a href="{% url 'gestion:produits_liste' %}?filtre=visibles" class="carte stat text-decoration-none">
+      <span class="stat-libelle"><i class="bi bi-box-seam" aria-hidden="true"></i> Produits en ligne</span>
+      <span class="stat-valeur">{{ nb_produits_actifs }}</span>
+      <span class="stat-note">dont {{ nb_produits_promo }} en promotion</span>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <section class="carte mb-3">
+      <div class="carte-entete">
+        <h2>Ventes des 30 derniers jours</h2>
+        <span class="fw-semibold" style="color:var(--mo-bordeaux)">{{ ca_30_jours|fcfa }}</span>
+      </div>
+      <div class="carte-corps">
+        <div class="graphique" role="img" aria-label="Ventes par jour sur les 30 derniers jours, total {{ ca_30_jours|fcfa }}">
+          {% for point in graphique %}
+            <div class="barre {% if point.montant %}pleine{% endif %}" style="height: {% if point.montant %}{{ point.hauteur }}%{% else %}3px{% endif %}" title="{{ point.jour|date:'d/m' }} : {{ point.montant|fcfa }}"></div>
+          {% endfor %}
+        </div>
+        <div class="graphique-legende">
+          <span>{{ graphique.0.jour|date:"d/m" }}</span>
+          <span>Aujourd'hui</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-entete">
+        <h2>Dernières commandes</h2>
+        <a href="{% url 'gestion:commandes_liste' %}" class="btn btn-contour btn-sm">Tout voir</a>
+      </div>
+      {% if dernieres_commandes %}
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th scope="col">Commande</th><th scope="col">Client</th><th scope="col">Total</th><th scope="col">Statut</th><th scope="col">Paiement</th></tr></thead>
+            <tbody>
+              {% for c in dernieres_commandes %}
+                <tr>
+                  <td><a href="{% url 'gestion:commande_detail' c.pk %}" class="fw-semibold">{{ c.numero }}</a><div class="small text-body-secondary">{{ c.date_creation|date:"d/m/Y H:i" }}</div></td>
+                  <td>{{ c.nom_client }}<div class="small text-body-secondary">{{ c.ville }}</div></td>
+                  <td class="fw-semibold">{{ c.total|fcfa }}</td>
+                  <td><span class="etiquette statut-{{ c.statut }}">{{ c.get_statut_display }}</span></td>
+                  <td>{% include "gestion/_paiement.html" with c=c %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="vide-etat">
+          <i class="bi bi-bag" aria-hidden="true"></i>
+          <h3>Aucune commande pour l'instant</h3>
+          <p class="mb-0">Les commandes passées sur le site apparaîtront ici.</p>
+        </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <section class="carte mb-3">
+      <div class="carte-entete"><h2>Actions rapides</h2></div>
+      <div class="carte-corps d-grid gap-2">
+        <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un produit</a>
+        <a href="{% url 'gestion:categorie_ajouter' %}" class="btn btn-contour"><i class="bi bi-tag" aria-hidden="true"></i> Créer une catégorie</a>
+        <a href="{% url 'gestion:produits_liste' %}?filtre=promo" class="btn btn-contour"><i class="bi bi-percent" aria-hidden="true"></i> Voir les promotions</a>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-entete"><h2>Ruptures de stock</h2></div>
+      {% if produits_rupture %}
+        <ul class="list-unstyled m-0">
+          {% for p in produits_rupture %}
+            <li class="d-flex align-items-center gap-3 px-3 py-2 border-bottom">
+              {% if p.image %}<img src="{{ p.image.url }}" alt="" class="vignette">{% else %}<span class="vignette"><i class="bi bi-image" aria-hidden="true"></i></span>{% endif %}
+              <span class="flex-grow-1">{{ p.nom }}</span>
+              <a href="{% url 'gestion:produit_modifier' p.pk %}" class="btn btn-contour btn-sm">Modifier</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="carte-corps text-body-secondary d-flex align-items-center gap-2">
+          <i class="bi bi-check-circle" aria-hidden="true" style="color:#1F5A2E"></i> Tous vos produits en ligne sont en stock.
+        </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

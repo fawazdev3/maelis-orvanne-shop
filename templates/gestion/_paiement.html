@@ -1,0 +1,1 @@
+{% if c.paiement_recu %}<span class="etiquette etiquette-ok"><i class="bi bi-check2-circle" aria-hidden="true"></i> Payée</span>{% elif c.statut == 'annulee' %}<span class="etiquette etiquette-off">—</span>{% else %}<span class="etiquette statut-nouvelle"><i class="bi bi-truck" aria-hidden="true"></i> À la livraison</span>{% endif %}

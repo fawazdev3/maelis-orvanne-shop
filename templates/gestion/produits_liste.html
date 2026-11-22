@@ -1,0 +1,118 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Produits{% endblock %}
+{% block titre_page %}Produits{% endblock %}
+{% block sous_titre %}<p class="sous-titre">{{ total_produits }} produit{{ total_produits|pluralize }} dans la boutique</p>{% endblock %}
+{% block actions %}
+  <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Ajouter un produit</a>
+{% endblock %}
+
+{% block contenu %}
+<section class="carte">
+  <form method="get" class="carte-entete flex-wrap" role="search">
+    <div class="d-flex flex-wrap gap-2 flex-grow-1">
+      <div class="input-group" style="max-width: 320px">
+        <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+        <label class="visually-hidden" for="recherche">Rechercher un produit</label>
+        <input type="search" id="recherche" name="q" value="{{ q }}" class="form-control" placeholder="Rechercher un produit">
+      </div>
+      <label class="visually-hidden" for="filtre-categorie">Catégorie</label>
+      <select id="filtre-categorie" name="categorie" class="form-select" style="max-width: 220px" onchange="this.form.submit()">
+        <option value="">Toutes les catégories</option>
+        {% for c in categories %}<option value="{{ c.pk }}" {% if categorie_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nom }}</option>{% endfor %}
+      </select>
+      <label class="visually-hidden" for="filtre-etat">État</label>
+      <select id="filtre-etat" name="filtre" class="form-select" style="max-width: 200px" onchange="this.form.submit()">
+        <option value="" {% if not filtre %}selected{% endif %}>Tous les produits</option>
+        <option value="visibles" {% if filtre == 'visibles' %}selected{% endif %}>Visibles</option>
+        <option value="caches" {% if filtre == 'caches' %}selected{% endif %}>Cachés</option>
+        <option value="promo" {% if filtre == 'promo' %}selected{% endif %}>En promotion</option>
+        <option value="rupture" {% if filtre == 'rupture' %}selected{% endif %}>En rupture</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-contour">Filtrer</button>
+      {% if q or categorie_id or filtre %}<a href="{% url 'gestion:produits_liste' %}" class="btn btn-contour">Effacer</a>{% endif %}
+    </div>
+  </form>
+
+  {% if produits %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th scope="col">Produit</th>
+            <th scope="col">Catégorie</th>
+            <th scope="col">Prix</th>
+            <th scope="col">Visible</th>
+            <th scope="col">Stock</th>
+            <th scope="col" class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in produits %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-3">
+                  {% if p.image %}<img src="{{ p.image.url }}" alt="" class="vignette">{% else %}<span class="vignette"><i class="bi bi-image" aria-hidden="true"></i></span>{% endif %}
+                  <div>
+                    <a href="{% url 'gestion:produit_modifier' p.pk %}" class="fw-semibold text-decoration-none">{{ p.nom }}</a>
+                    <div class="d-flex gap-1 mt-1">
+                      {% if p.en_promo %}<span class="etiquette etiquette-promo">−{{ p.pourcentage_remise }} %</span>{% endif %}
+                      {% if p.mis_en_avant %}<span class="etiquette etiquette-off"><i class="bi bi-star-fill" aria-hidden="true" style="color:var(--mo-or-fonce)"></i> Accueil</span>{% endif %}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>{{ p.categorie.nom }}</td>
+              <td class="text-nowrap">
+                {% if p.en_promo %}
+                  <div class="prix-promo">{{ p.prix_promo|fcfa }}</div>
+                  <div class="prix-barre">{{ p.prix|fcfa }}</div>
+                {% else %}
+                  <span class="fw-semibold">{{ p.prix|fcfa }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" action="{% url 'gestion:produit_basculer' p.pk 'actif' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="suivant" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" aria-label="{% if p.actif %}Cacher{% else %}Afficher{% endif %} {{ p.nom }} sur le site">
+                    {% if p.actif %}<span class="etiquette etiquette-ok"><i class="bi bi-eye" aria-hidden="true"></i> Visible</span>{% else %}<span class="etiquette etiquette-off"><i class="bi bi-eye-slash" aria-hidden="true"></i> Caché</span>{% endif %}
+                  </button>
+                </form>
+              </td>
+              <td>
+                <form method="post" action="{% url 'gestion:produit_basculer' p.pk 'en_stock' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="suivant" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent" aria-label="Changer le stock de {{ p.nom }}">
+                    {% if p.en_stock %}<span class="etiquette etiquette-ok">En stock</span>{% else %}<span class="etiquette etiquette-alerte">Rupture</span>{% endif %}
+                  </button>
+                </form>
+              </td>
+              <td class="text-end text-nowrap">
+                <a href="{% url 'gestion:produit_modifier' p.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier {{ p.nom }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                <a href="{% url 'gestion:produit_supprimer' p.pk %}" class="btn btn-contour btn-icone" aria-label="Supprimer {{ p.nom }}"><i class="bi bi-trash3" aria-hidden="true"></i></a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "gestion/_pagination.html" with page_obj=produits %}
+  {% else %}
+    <div class="vide-etat">
+      <i class="bi bi-box-seam" aria-hidden="true"></i>
+      {% if q or categorie_id or filtre %}
+        <h3>Aucun produit ne correspond</h3>
+        <p>Essayez une autre recherche ou effacez les filtres.</p>
+      {% else %}
+        <h3>Votre boutique est encore vide</h3>
+        <p>Ajoutez votre premier produit : nom, photo et prix.</p>
+        <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo mt-2"><i class="bi bi-plus-lg" aria-hidden="true"></i> Ajouter un produit</a>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

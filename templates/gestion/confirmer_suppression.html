@@ -1,0 +1,17 @@
+{% extends "gestion/base.html" %}
+{% block titre %}Supprimer {{ objet }}{% endblock %}
+{% block titre_page %}Supprimer {{ type_objet }}{% endblock %}
+
+{% block contenu %}
+<section class="carte" style="max-width: 560px">
+  <div class="carte-corps p-4">
+    <p class="fs-5 mb-2">Voulez-vous vraiment supprimer {{ type_objet }} <strong>« {{ objet }} »</strong> ?</p>
+    <p class="text-body-secondary">Cette action est définitive. {{ avertissement }}</p>
+    <form method="post" class="d-flex gap-2 flex-wrap mt-4">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-mo"><i class="bi bi-trash3" aria-hidden="true"></i> Oui, supprimer</button>
+      <a href="{% url retour %}" class="btn btn-contour">Annuler</a>
+    </form>
+  </div>
+</section>
+{% endblock %}
