@@ -37,7 +37,7 @@
             {% endfor %}
           </tbody>
           <tfoot>
-            <tr><th scope="row" colspan="3" class="text-end">Total à payer à la livraison</th><td class="text-end titre-serif fs-4 text-nowrap" style="color:var(--mo-bordeaux)">{{ commande.total|fcfa }}</td></tr>
+            <tr><th scope="row" colspan="3" class="text-end">Total à payer à la livraison</th><td class="text-end fw-bold fs-6 text-nowrap chiffre">{{ commande.total|fcfa }}</td></tr>
             <tr><td colspan="4" class="text-end">{% include "gestion/_paiement.html" with c=commande %} <span class="small text-body-secondary ms-1">{{ commande.get_mode_paiement_display }}</span></td></tr>
           </tfoot>
         </table>

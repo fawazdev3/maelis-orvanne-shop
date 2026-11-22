@@ -15,6 +15,15 @@ def fcfa(valeur):
     return f"{montant:,}".replace(",", " ") + " FCFA"
 
 
+@register.filter
+def montant(valeur):
+    """Affiche seulement le nombre avec séparateur de milliers : « 12 500 »."""
+    try:
+        return f"{int(valeur or 0):,}".replace(",", " ")
+    except (TypeError, ValueError):
+        return valeur
+
+
 @register.simple_tag(takes_context=True)
 def url_avec(context, **params):
     """Reconstruit la query string courante en remplaçant certains paramètres (pagination, filtres)."""

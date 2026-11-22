@@ -2,6 +2,24 @@
 (function () {
   "use strict";
 
+  // Thème clair / sombre (mémorisé dans le navigateur)
+  const racine = document.documentElement;
+  function majBoutonsTheme() {
+    const sombre = racine.getAttribute("data-bs-theme") === "dark";
+    document.querySelectorAll("[data-basculer-theme]").forEach(function (b) {
+      b.setAttribute("aria-label", sombre ? "Passer au thème clair" : "Passer au thème sombre");
+    });
+  }
+  document.querySelectorAll("[data-basculer-theme]").forEach(function (bouton) {
+    bouton.addEventListener("click", function () {
+      const nouveau = racine.getAttribute("data-bs-theme") === "dark" ? "light" : "dark";
+      racine.setAttribute("data-bs-theme", nouveau);
+      try { localStorage.setItem("mo-theme", nouveau); } catch (e) { /* stockage indisponible */ }
+      majBoutonsTheme();
+    });
+  });
+  majBoutonsTheme();
+
   // Menu latéral sur mobile
   const sidebar = document.querySelector(".mo-sidebar");
   const voile = document.querySelector(".mo-voile");
@@ -66,7 +84,7 @@
     if (isNaN(p)) { resume.textContent = "Saisissez un prix."; return; }
     if (!isNaN(pp) && pp < p) {
       const remise = Math.round(((p - pp) * 100) / p);
-      resume.innerHTML = "Affiché sur le site : <s>" + formater(p) + "</s> <strong>" + formater(pp) + "</strong> (−" + remise + " %)";
+      resume.innerHTML = "Affiché sur le site : <s>" + formater(p) + "</s> <strong>" + formater(pp) + "</strong> <span class=\"etiquette etiquette-promo\">−" + remise + " %</span>";
     } else if (!isNaN(pp) && pp >= p) {
       resume.textContent = "Le prix promo doit être inférieur au prix normal.";
     } else {

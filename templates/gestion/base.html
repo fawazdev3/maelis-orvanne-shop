@@ -1,27 +1,22 @@
 {% load static %}<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
+  {% include "gestion/_tete.html" %}
   <title>{% block titre %}Back-office{% endblock %} · {{ BOUTIQUE_NOM }}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="{% static 'gestion/css/gestion.css' %}" rel="stylesheet">
 </head>
 <body>
 
 <div class="mo-barre-mobile">
   <button type="button" class="btn" data-ouvrir-menu aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="menu-gestion">
-    <i class="bi bi-list fs-3" aria-hidden="true"></i>
+    <i class="bi bi-list fs-4" aria-hidden="true"></i>
   </button>
-  <span class="titre-serif fs-5" style="letter-spacing:.12em">MAÉLIS ORVANNE</span>
-  <a class="btn" href="{% url 'gestion:commandes_liste' %}?statut=nouvelle" aria-label="Nouvelles commandes">
-    <i class="bi bi-bag fs-5" aria-hidden="true"></i>{% if nb_nouvelles_commandes %}<span class="badge rounded-pill" style="background:var(--mo-or);color:var(--mo-bordeaux-fonce)">{{ nb_nouvelles_commandes }}</span>{% endif %}
-  </a>
+  <span class="titre-serif" style="letter-spacing:.08em">MAÉLIS ORVANNE</span>
+  <div class="d-flex align-items-center gap-1">
+    {% include "gestion/_bouton_theme.html" %}
+    <a class="btn" href="{% url 'gestion:commandes_liste' %}?statut=nouvelle" aria-label="Nouvelles commandes">
+      <i class="bi bi-bag" aria-hidden="true"></i>{% if nb_nouvelles_commandes %}<span class="badge-nav ms-1">{{ nb_nouvelles_commandes }}</span>{% endif %}
+    </a>
+  </div>
 </div>
 
 <aside class="mo-sidebar" id="menu-gestion">
@@ -34,18 +29,18 @@
   </a>
 
   <nav class="mo-nav" aria-label="Menu du back-office">
-    <a href="{% url 'gestion:tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}active{% endif %}">
+    <a href="{% url 'gestion:tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}active{% endif %}" {% if page == 'tableau_de_bord' %}aria-current="page"{% endif %}>
       <i class="bi bi-grid-1x2" aria-hidden="true"></i> Tableau de bord
     </a>
     <span class="mo-nav-titre">Boutique</span>
-    <a href="{% url 'gestion:commandes_liste' %}" class="{% if page == 'commandes' %}active{% endif %}">
+    <a href="{% url 'gestion:commandes_liste' %}" class="{% if page == 'commandes' %}active{% endif %}" {% if page == 'commandes' %}aria-current="page"{% endif %}>
       <i class="bi bi-bag-check" aria-hidden="true"></i> Commandes
-      {% if nb_nouvelles_commandes %}<span class="badge-nav">{{ nb_nouvelles_commandes }}</span>{% endif %}
+      {% if nb_nouvelles_commandes %}<span class="badge-nav" aria-label="{{ nb_nouvelles_commandes }} nouvelles">{{ nb_nouvelles_commandes }}</span>{% endif %}
     </a>
-    <a href="{% url 'gestion:produits_liste' %}" class="{% if page == 'produits' %}active{% endif %}">
+    <a href="{% url 'gestion:produits_liste' %}" class="{% if page == 'produits' %}active{% endif %}" {% if page == 'produits' %}aria-current="page"{% endif %}>
       <i class="bi bi-box-seam" aria-hidden="true"></i> Produits
     </a>
-    <a href="{% url 'gestion:categories_liste' %}" class="{% if page == 'categories' %}active{% endif %}">
+    <a href="{% url 'gestion:categories_liste' %}" class="{% if page == 'categories' %}active{% endif %}" {% if page == 'categories' %}aria-current="page"{% endif %}>
       <i class="bi bi-tags" aria-hidden="true"></i> Catégories
     </a>
     <span class="mo-nav-titre">Raccourcis</span>
@@ -53,18 +48,20 @@
       <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un produit
     </a>
     <a href="{% url 'boutique:accueil' %}" target="_blank" rel="noopener">
-      <i class="bi bi-shop" aria-hidden="true"></i> Voir le site
+      <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Voir le site
     </a>
   </nav>
 
   <div class="mo-sidebar-pied">
-    <div class="d-flex align-items-center gap-2 mb-1">
-      <i class="bi bi-person-circle" aria-hidden="true" style="color:var(--mo-or)"></i>
-      <span>{{ user.get_full_name|default:user.username }}</span>
-    </div>
+    <span class="mo-avatar" aria-hidden="true">{{ user.get_username|slice:":1" }}</span>
+    <span class="mo-utilisateur">
+      <span class="nom">{{ user.get_full_name|default:user.get_username }}</span>
+      <span class="role">Gestionnaire</span>
+    </span>
+    {% include "gestion/_bouton_theme.html" %}
     <form method="post" action="{% url 'gestion:deconnexion' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-link"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Se déconnecter</button>
+      <button type="submit" class="btn-pied" aria-label="Se déconnecter" title="Se déconnecter"><i class="bi bi-box-arrow-right" aria-hidden="true"></i></button>
     </form>
   </div>
 </aside>

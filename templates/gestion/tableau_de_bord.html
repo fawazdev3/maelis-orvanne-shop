@@ -19,15 +19,15 @@
   <div class="col-6 col-xl-3">
     <div class="carte stat">
       <span class="stat-libelle"><i class="bi bi-cash-coin" aria-hidden="true"></i> Encaissé ce mois</span>
-      <span class="stat-valeur">{{ encaisse_mois|fcfa }}</span>
-      <span class="stat-note">Paiements reçus à la livraison ({{ mois_nom }})</span>
+      <span class="stat-valeur">{{ encaisse_mois|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">Paiements reçus à la livraison · {{ mois_nom }}</span>
     </div>
   </div>
   <div class="col-6 col-xl-3">
     <a href="{% url 'gestion:commandes_liste' %}?statut=a_encaisser" class="carte stat text-decoration-none">
       <span class="stat-libelle"><i class="bi bi-hourglass-split" aria-hidden="true"></i> À encaisser</span>
-      <span class="stat-valeur">{{ montant_a_encaisser|fcfa }}</span>
-      <span class="stat-note">{{ nb_a_encaisser }} commande{{ nb_a_encaisser|pluralize }} pas encore payée{{ nb_a_encaisser|pluralize }} · {{ nb_commandes_jour }} aujourd'hui</span>
+      <span class="stat-valeur">{{ montant_a_encaisser|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">{{ nb_a_encaisser }} commande{{ nb_a_encaisser|pluralize }} non payée{{ nb_a_encaisser|pluralize }} · {{ nb_commandes_jour }} aujourd'hui</span>
     </a>
   </div>
   <div class="col-6 col-xl-3">
@@ -40,22 +40,26 @@
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-8">
-    <section class="carte mb-3">
+  <div class="col-lg-8 d-flex flex-column gap-3">
+    <section class="carte">
       <div class="carte-entete">
         <h2>Ventes des 30 derniers jours</h2>
-        <span class="fw-semibold" style="color:var(--mo-bordeaux)">{{ ca_30_jours|fcfa }}</span>
+        <span class="fw-semibold chiffre">{{ ca_30_jours|fcfa }}</span>
       </div>
       <div class="carte-corps">
-        <div class="graphique" role="img" aria-label="Ventes par jour sur les 30 derniers jours, total {{ ca_30_jours|fcfa }}">
-          {% for point in graphique %}
-            <div class="barre {% if point.montant %}pleine{% endif %}" style="height: {% if point.montant %}{{ point.hauteur }}%{% else %}3px{% endif %}" title="{{ point.jour|date:'d/m' }} : {{ point.montant|fcfa }}"></div>
-          {% endfor %}
-        </div>
-        <div class="graphique-legende">
-          <span>{{ graphique.0.jour|date:"d/m" }}</span>
-          <span>Aujourd'hui</span>
-        </div>
+        {% if ca_30_jours %}
+          <div class="graphique" role="img" aria-label="Ventes par jour sur les 30 derniers jours, total {{ ca_30_jours|fcfa }}">
+            {% for point in graphique %}
+              <div class="barre {% if point.montant %}pleine{% endif %}" style="height: {% if point.montant %}{{ point.hauteur }}%{% else %}2px{% endif %}" title="{{ point.jour|date:'d/m' }} : {{ point.montant|fcfa }}"></div>
+            {% endfor %}
+          </div>
+          <div class="graphique-legende">
+            <span>{{ graphique.0.jour|date:"d/m" }}</span>
+            <span>Aujourd'hui</span>
+          </div>
+        {% else %}
+          <div class="graphique-vide">Pas encore de ventes sur les 30 derniers jours.<br>Le graphique se remplira avec vos commandes.</div>
+        {% endif %}
       </div>
     </section>
 
@@ -71,9 +75,9 @@
             <tbody>
               {% for c in dernieres_commandes %}
                 <tr>
-                  <td><a href="{% url 'gestion:commande_detail' c.pk %}" class="fw-semibold">{{ c.numero }}</a><div class="small text-body-secondary">{{ c.date_creation|date:"d/m/Y H:i" }}</div></td>
+                  <td><a href="{% url 'gestion:commande_detail' c.pk %}" class="fw-semibold text-decoration-none text-nowrap">{{ c.numero }}</a><div class="small text-body-secondary">{{ c.date_creation|date:"d/m/Y H:i" }}</div></td>
                   <td>{{ c.nom_client }}<div class="small text-body-secondary">{{ c.ville }}</div></td>
-                  <td class="fw-semibold">{{ c.total|fcfa }}</td>
+                  <td class="fw-semibold text-nowrap">{{ c.total|fcfa }}</td>
                   <td><span class="etiquette statut-{{ c.statut }}">{{ c.get_statut_display }}</span></td>
                   <td>{% include "gestion/_paiement.html" with c=c %}</td>
                 </tr>
@@ -91,8 +95,8 @@
     </section>
   </div>
 
-  <div class="col-lg-4">
-    <section class="carte mb-3">
+  <div class="col-lg-4 d-flex flex-column gap-3">
+    <section class="carte">
       <div class="carte-entete"><h2>Actions rapides</h2></div>
       <div class="carte-corps d-grid gap-2">
         <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un produit</a>
@@ -106,7 +110,7 @@
       {% if produits_rupture %}
         <ul class="list-unstyled m-0">
           {% for p in produits_rupture %}
-            <li class="d-flex align-items-center gap-3 px-3 py-2 border-bottom">
+            <li class="d-flex align-items-center gap-2 px-3 py-2 liste-ligne">
               {% if p.image %}<img src="{{ p.image.url }}" alt="" class="vignette">{% else %}<span class="vignette"><i class="bi bi-image" aria-hidden="true"></i></span>{% endif %}
               <span class="flex-grow-1">{{ p.nom }}</span>
               <a href="{% url 'gestion:produit_modifier' p.pk %}" class="btn btn-contour btn-sm">Modifier</a>
@@ -115,7 +119,7 @@
         </ul>
       {% else %}
         <div class="carte-corps text-body-secondary d-flex align-items-center gap-2">
-          <i class="bi bi-check-circle" aria-hidden="true" style="color:#1F5A2E"></i> Tous vos produits en ligne sont en stock.
+          <i class="bi bi-check-circle texte-ok" aria-hidden="true"></i> Tous vos produits en ligne sont en stock.
         </div>
       {% endif %}
     </section>
