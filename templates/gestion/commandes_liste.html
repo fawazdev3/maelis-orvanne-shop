@@ -34,10 +34,10 @@
           {% for c in commandes %}
             <tr>
               <td><a href="{% url 'gestion:commande_detail' c.pk %}" class="fw-semibold text-decoration-none text-nowrap">{{ c.numero }}</a><div class="small text-body-secondary">{{ c.date_creation|date:"d/m/Y H:i" }}</div></td>
-              <td>{{ c.nom_client }}<div class="small text-body-secondary">{{ c.telephone }}</div></td>
-              <td>{{ c.ville }}<div class="small text-body-secondary">{{ c.lieu_livraison|truncatechars:40 }}</div></td>
+              <td>{{ c.nom_client }}<div class="small text-body-secondary chiffre text-nowrap"><a href="https://wa.me/{{ c.telephone_whatsapp }}" target="_blank" rel="noopener" class="text-reset text-decoration-none" aria-label="Écrire à {{ c.nom_client }} sur WhatsApp"><i class="bi bi-whatsapp" aria-hidden="true"></i> {{ c.telephone_affiche }}</a></div></td>
+              <td>{{ c.ville }}{% if c.pays != "TG" %} <span class="text-body-secondary small">· {{ c.nom_pays }}</span>{% endif %}{% if c.lieu_livraison %}<div class="small text-body-secondary">{{ c.lieu_livraison|truncatechars:40 }}</div>{% endif %}</td>
               <td>{{ c.nombre_articles }}</td>
-              <td class="fw-semibold text-nowrap">{{ c.total|fcfa }}</td>
+              <td class="fw-semibold text-nowrap">{{ c.total|fcfa }}{% if c.livraison_a_confirmer %}<div class="small fw-normal text-warning-emphasis">+ envoi à confirmer</div>{% endif %}</td>
               <td><span class="etiquette statut-{{ c.statut }}">{{ c.get_statut_display }}</span></td>
               <td>{% include "gestion/_paiement.html" with c=c %}<div class="small text-body-secondary mt-1">{{ c.get_mode_paiement_display }}</div></td>
               <td class="text-end text-nowrap">

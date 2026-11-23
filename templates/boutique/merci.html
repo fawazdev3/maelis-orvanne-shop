@@ -1,0 +1,71 @@
+{% extends "boutique/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Commande {{ commande.numero }} — {{ BOUTIQUE_NOM }}{% endblock %}
+{% block contenu %}
+<section class="section" data-vider-panier>
+  <div class="conteneur">
+    <div class="merci">
+      {% if lien_whatsapp %}
+        <div class="rond-ok rond-wa"><i class="bi bi-whatsapp"></i></div>
+        <h1>Plus qu'une étape, {{ commande.nom_client }}</h1>
+        <p class="text-body-secondary">Votre commande <strong class="chiffre text-nowrap">{{ commande.numero }}</strong> est enregistrée.
+          WhatsApp s'ouvre avec le message déjà écrit : <strong>appuyez sur « Envoyer »</strong>, puis envoyez-nous votre position.</p>
+        <a href="{{ lien_whatsapp }}" class="btn btn-whatsapp btn-lg fs-6 w-100 mt-2" id="bouton-whatsapp">
+          <i class="bi bi-whatsapp"></i> Envoyer sur WhatsApp
+        </a>
+        <p class="small text-body-secondary mt-2 mb-0" id="etat-whatsapp">WhatsApp ne s'est pas ouvert ? Appuyez sur le bouton vert.</p>
+      {% else %}
+        <div class="rond-ok"><i class="bi bi-check-lg"></i></div>
+        <h1>Merci {{ commande.nom_client }} !</h1>
+        <p class="text-body-secondary">Votre commande <strong class="chiffre text-nowrap">{{ commande.numero }}</strong> est bien enregistrée.
+          Nous vous contactons au <strong class="chiffre text-nowrap">{{ commande.telephone }}</strong> pour confirmer la livraison.</p>
+        {% if debug %}
+          <div class="alert-info-b text-start mt-3 small">
+            <strong>Visible seulement en développement :</strong> le numéro WhatsApp de la boutique n'est pas réglé,
+            donc WhatsApp ne s'ouvre pas. Ajoute <code>BOUTIQUE_WHATSAPP=228XXXXXXXX</code> dans <code>.env</code>, puis relance le serveur.
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <div class="carte-blanche corps recu">
+        <h2 class="h5 mb-3">Récapitulatif</h2>
+        {% for l in commande.lignes.all %}
+          <div class="ligne"><span>{{ l.nom_produit }} <span class="text-body-secondary chiffre">× {{ l.quantite }}</span></span><span class="prix text-nowrap">{{ l.sous_total|fcfa }}</span></div>
+        {% endfor %}
+        <div class="ligne"><span class="text-body-secondary">Livraison</span><span class="prix text-nowrap">{% if commande.livraison_a_confirmer %}à confirmer{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}offerte{% endif %}</span></div>
+        <div class="ligne fw-bold"><span>Total à payer à la réception</span><span class="prix text-nowrap">{{ commande.total|fcfa }}{% if commande.livraison_a_confirmer %} + envoi{% endif %}</span></div>
+        <div class="ligne"><span class="text-body-secondary">Paiement</span><span class="text-end">{{ commande.get_mode_paiement_display }}</span></div>
+        <div class="ligne"><span class="text-body-secondary">Adresse</span><span class="text-end">{{ commande.ville }} ({{ commande.nom_pays }}){% if commande.lieu_livraison %} — {{ commande.lieu_livraison }}{% endif %}</span></div>
+        <div class="ligne"><span class="text-body-secondary">Numéro</span><span class="text-end chiffre text-nowrap">{{ commande.telephone }}</span></div>
+      </div>
+
+      <a href="{% url 'boutique:catalogue' %}" class="btn btn-contour mt-4">Continuer mes achats</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}{% if reglages.pixel_facebook %}
+<script>
+  /* Pixel Facebook : une commande = un « achat », compté une seule fois */
+  (function () {
+    var cle = "mo-px-{{ commande.numero }}";
+    try { if (sessionStorage.getItem(cle)) return; sessionStorage.setItem(cle, "1"); } catch (e) {}
+    if (window.fbq) fbq("track", "Purchase", { value: {{ commande.total }}, currency: "XOF", num_items: {{ commande.nombre_articles }} });
+  })();
+</script>
+{% endif %}{% if lien_whatsapp %}
+<script>
+  /* Ouvre WhatsApp tout de suite, une seule fois par commande (pas à chaque rechargement de la page) */
+  (function () {
+    var cle = "mo-wa-{{ commande.numero }}";
+    try { if (sessionStorage.getItem(cle)) return; sessionStorage.setItem(cle, "1"); } catch (e) { return; }
+    document.getElementById("etat-whatsapp").textContent = "Ouverture de WhatsApp…";
+    setTimeout(function () {
+      window.location.href = document.getElementById("bouton-whatsapp").href;
+      setTimeout(function () {
+        document.getElementById("etat-whatsapp").textContent = "WhatsApp ne s'est pas ouvert ? Appuyez sur le bouton vert.";
+      }, 2500);
+    }, 600);
+  })();
+</script>
+{% endif %}{% endblock %}

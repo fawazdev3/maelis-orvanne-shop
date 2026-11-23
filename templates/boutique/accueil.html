@@ -1,0 +1,76 @@
+{% extends "boutique/base.html" %}
+{% block contenu %}
+<section class="hero">
+  <div class="conteneur">
+    <span class="monogramme monogramme-hero" aria-hidden="true"><span class="o">O</span><span class="m">M</span></span>
+    <h1>MAÉLIS ORVANNE</h1>
+    <div class="shop">SHOP</div>
+    <div class="filet"></div>
+    <p class="accroche">{{ reglages.slogan }}</p>
+    <div class="atouts">
+      <span><i class="bi bi-truck"></i>Livraison à domicile</span>
+      <span><i class="bi bi-cash-coin"></i>Paiement à la livraison</span>
+      <span><i class="bi bi-whatsapp"></i>Commande confirmée sur WhatsApp</span>
+    </div>
+    <div class="boutons">
+      <a href="{% url 'boutique:catalogue' %}" class="btn btn-or px-4">Voir les produits <i class="bi bi-arrow-right"></i></a>
+      {% if a_des_promos %}<a href="{% url 'boutique:catalogue' %}?tri=promo" class="btn btn-clair px-4">Promotions</a>{% endif %}
+    </div>
+  </div>
+</section>
+
+{% if categories %}
+<section class="section pb-0">
+  <div class="conteneur">
+    <div class="puces-categories justify-content-center">
+      <a href="{% url 'boutique:catalogue' %}">Tout voir</a>
+      {% for c in categories %}<a href="{% url 'boutique:categorie' c.slug %}">{{ c.nom }} <span class="n chiffre">{{ c.nb }}</span></a>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section">
+  <div class="conteneur">
+    <div class="section-titre">
+      <div>
+        <div class="surtitre">Notre sélection</div>
+        <h2>Les incontournables</h2>
+      </div>
+      <a href="{% url 'boutique:catalogue' %}" class="btn btn-contour btn-sm">Tout le catalogue <i class="bi bi-arrow-right"></i></a>
+    </div>
+    {% if vedettes %}
+      <div class="grille-produits centree">{% for p in vedettes %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
+    {% else %}
+      <div class="vide"><i class="bi bi-box-seam"></i><h3>Les produits arrivent bientôt</h3><p class="mb-0">Revenez dans quelques jours.</p></div>
+    {% endif %}
+  </div>
+</section>
+
+{% if promotions %}
+<section class="section pt-0">
+  <div class="conteneur">
+    <div class="section-titre">
+      <div>
+        <div class="surtitre">Prix doux</div>
+        <h2>En promotion</h2>
+      </div>
+      <a href="{% url 'boutique:catalogue' %}?tri=promo" class="btn btn-contour btn-sm">Toutes les promotions <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <div class="grille-produits centree">{% for p in promotions %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+
+<section class="section pt-0">
+  <div class="conteneur">
+    <div class="carte-blanche corps">
+      <div class="row g-4 text-center">
+        <div class="col-md-4"><i class="bi bi-bag-check fs-3" style="color:var(--b-or-texte)"></i><h3 class="h6 mt-2 mb-1" style="font-family:Inter,sans-serif">1. Choisissez</h3><p class="small text-body-secondary mb-0">Ajoutez vos articles au panier, le total se calcule tout seul.</p></div>
+        <div class="col-md-4"><i class="bi bi-geo-alt fs-3" style="color:var(--b-or-texte)"></i><h3 class="h6 mt-2 mb-1" style="font-family:Inter,sans-serif">2. Indiquez où livrer</h3><p class="small text-body-secondary mb-0">Votre nom, votre numéro, votre ville et votre quartier.</p></div>
+        <div class="col-md-4"><i class="bi bi-cash-coin fs-3" style="color:var(--b-or-texte)"></i><h3 class="h6 mt-2 mb-1" style="font-family:Inter,sans-serif">3. Payez à la livraison</h3><p class="small text-body-secondary mb-0">En espèces ou par Mobile Money, quand vous recevez le colis.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

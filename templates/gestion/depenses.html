@@ -1,0 +1,114 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Dépenses{% endblock %}
+{% block titre_page %}Dépenses{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Tout ce que la boutique a payé : pubs, transport, emballage, marchandise.</p>{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 align-items-start">
+  <div class="col-lg-8">
+    <div class="navigation-periode mb-3">
+      <a href="?mois={{ mois_precedent|date:'Y-m' }}" class="btn btn-contour btn-icone" aria-label="Mois précédent"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+      <span class="periode">{{ mois_nom|capfirst }}</span>
+      {% if mois_suivant %}<a href="?mois={{ mois_suivant|date:'Y-m' }}" class="btn btn-contour btn-icone" aria-label="Mois suivant"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% else %}<span class="btn btn-contour btn-icone disabled" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>{% endif %}
+      <span class="ms-auto total-periode">Total du mois : <strong class="chiffre">{{ total_mois|fcfa }}</strong></span>
+    </div>
+
+    {% if par_categorie %}
+      <div class="repartition mb-3">
+        {% for c in par_categorie %}
+          <div class="carte stat"><span class="stat-libelle">{{ c.categorie__nom }}</span><span class="stat-valeur petite">{{ c.total|montant }}<span class="unite">FCFA</span></span></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <section class="carte">
+      {% if depenses %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th scope="col">Date</th><th scope="col">Dépense</th><th scope="col">Catégorie</th><th scope="col" class="text-end">Montant</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              {% for d in depenses %}
+                <tr{% if depense and depense.pk == d.pk %} class="ligne-active"{% endif %}>
+                  <td class="text-nowrap">{{ d.date|date:"d/m" }}</td>
+                  <td>{{ d.libelle }}{% if d.note %}<div class="small text-body-secondary">{{ d.note }}</div>{% endif %}</td>
+                  <td class="small">{{ d.categorie.nom }}</td>
+                  <td class="text-end chiffre text-nowrap fw-semibold">{{ d.montant|fcfa }}</td>
+                  <td class="text-end text-nowrap">
+                    {% if d.arrivage %}
+                      <a href="{% url 'gestion:stock' %}" class="small text-body-secondary">via Stock</a>
+                    {% else %}
+                      <a href="{% url 'gestion:depense_modifier' d.pk %}?mois={{ mois|date:'Y-m' }}" class="btn btn-contour btn-icone" aria-label="Modifier"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                      <form method="post" action="{% url 'gestion:depense_supprimer' d.pk %}" class="d-inline" onsubmit="return confirm('Supprimer cette dépense ?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-contour btn-icone" aria-label="Supprimer"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                      </form>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte-corps small text-body-secondary">Aucune dépense en {{ mois_nom }}.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="colonne-collante">
+      <form method="post" class="carte mb-3" novalidate>
+        {% csrf_token %}
+        <div class="carte-entete">
+          <h2>{% if depense %}Modifier la dépense{% else %}Nouvelle dépense{% endif %}</h2>
+          {% if depense %}<a href="{% url 'gestion:depenses' %}?mois={{ mois|date:'Y-m' }}" class="small">Annuler</a>{% endif %}
+        </div>
+        <div class="carte-corps">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="{{ form.date.id_for_label }}">Date</label>
+              {{ form.date }}
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="{{ form.montant.id_for_label }}">Montant</label>
+              {{ form.montant }}
+              {% for e in form.montant.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.categorie.id_for_label }}">Catégorie</label>
+            {{ form.categorie }}
+            {% for e in form.categorie.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.libelle.id_for_label }}">Libellé</label>
+            {{ form.libelle }}
+            {% for e in form.libelle.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.note.id_for_label }}">Note</label>
+            {{ form.note }}
+          </div>
+          <button type="submit" class="btn btn-mo w-100"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer</button>
+        </div>
+      </form>
+
+      <details class="carte petite-carte">
+        <summary>Catégories de dépenses</summary>
+        <div class="carte-corps pt-0">
+          <ul class="liste-simple">{% for c in categories %}<li>{{ c.nom }}</li>{% endfor %}</ul>
+          <form method="post" class="d-flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="categorie">
+            <label class="visually-hidden" for="nouvelle-categorie">Nouvelle catégorie</label>
+            <input id="nouvelle-categorie" name="nom" class="form-control form-control-sm" placeholder="Nouvelle catégorie" maxlength="80">
+            <button class="btn btn-contour btn-sm" type="submit">Ajouter</button>
+          </form>
+          <p class="small text-body-secondary mt-2 mb-0">Les achats de marchandise s'enregistrent dans <a href="{% url 'gestion:stock' %}">Stock</a>, pour mettre aussi les quantités à jour.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -4,8 +4,8 @@
 {% block titre_page %}Commande {{ commande.numero }}{% endblock %}
 {% block sous_titre %}<p class="sous-titre"><a href="{% url 'gestion:commandes_liste' %}" class="text-decoration-none"><i class="bi bi-arrow-left" aria-hidden="true"></i> Retour aux commandes</a> · passée le {{ commande.date_creation|date:"d/m/Y à H:i" }}</p>{% endblock %}
 {% block actions %}
-  <a href="https://wa.me/{{ commande.telephone_whatsapp }}?text={{ message_client|urlencode }}" target="_blank" rel="noopener" class="btn btn-or"><i class="bi bi-whatsapp" aria-hidden="true"></i> Écrire au client</a>
-  <a href="tel:{{ commande.telephone }}" class="btn btn-contour"><i class="bi bi-telephone" aria-hidden="true"></i> Appeler</a>
+  <a href="https://wa.me/{{ commande.telephone_whatsapp }}" target="_blank" rel="noopener" class="btn btn-or"><i class="bi bi-whatsapp" aria-hidden="true"></i> Ouvrir la discussion</a>
+  <a href="tel:+{{ commande.telephone_whatsapp }}" class="btn btn-contour"><i class="bi bi-telephone" aria-hidden="true"></i> Appeler</a>
 {% endblock %}
 
 {% block contenu %}
@@ -37,67 +37,87 @@
             {% endfor %}
           </tbody>
           <tfoot>
-            <tr><th scope="row" colspan="3" class="text-end">Total à payer à la livraison</th><td class="text-end fw-bold fs-6 text-nowrap chiffre">{{ commande.total|fcfa }}</td></tr>
+            <tr class="ligne-discrete"><th scope="row" colspan="3" class="text-end fw-normal">Articles</th><td class="text-end text-nowrap chiffre">{{ commande.montant_articles|fcfa }}</td></tr>
+            <tr class="ligne-discrete"><th scope="row" colspan="3" class="text-end fw-normal">Livraison ({{ commande.ville }})</th><td class="text-end text-nowrap chiffre">{% if commande.livraison_a_confirmer %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}Offerte{% endif %}</td></tr>
+            <tr><th scope="row" colspan="3" class="text-end">Total à encaisser</th><td class="text-end fw-bold fs-6 text-nowrap chiffre">{{ commande.total|fcfa }}</td></tr>
             <tr><td colspan="4" class="text-end">{% include "gestion/_paiement.html" with c=commande %} <span class="small text-body-secondary ms-1">{{ commande.get_mode_paiement_display }}</span></td></tr>
           </tfoot>
         </table>
       </div>
     </section>
 
-    {% if commande.note %}
-      <section class="carte mb-3">
-        <div class="carte-entete"><h2>Message du client</h2></div>
-        <div class="carte-corps">{{ commande.note|linebreaksbr }}</div>
-      </section>
-    {% endif %}
+    <section class="carte mt-3">
+      <div class="carte-entete"><h2>Écrire sur WhatsApp</h2><span class="small text-body-secondary">le message s'ouvre déjà rédigé</span></div>
+      <div class="grille-wa">
+        {% for m in messages_client %}
+          <a href="{{ m.lien }}" target="_blank" rel="noopener" class="tuile-wa{% if m.suggere %} suggere{% endif %}">
+            <span class="titre"><i class="bi {{ m.icone }}" aria-hidden="true"></i> {{ m.titre }}</span>
+            <span class="resume">{{ m.resume }}</span>
+            {% if m.suggere %}<span class="etiquette etiquette-promo">Étape suivante</span>{% endif %}
+          </a>
+        {% endfor %}
+        <div class="tuile-wa livreur">
+          <span class="titre"><i class="bi bi-box-seam" aria-hidden="true"></i> Fiche de livraison</span>
+          <span class="resume">Adresse, carte, articles et montant à encaisser, pour la personne qui livre.</span>
+          <span class="d-flex gap-2 mt-auto pt-1">
+            <a href="{{ fiche.lien }}" target="_blank" rel="noopener" class="btn btn-sm btn-or"><i class="bi bi-whatsapp" aria-hidden="true"></i> Partager</a>
+            <button type="button" class="btn btn-sm btn-contour" data-copier="fiche-livraison"><i class="bi bi-clipboard" aria-hidden="true"></i> Copier</button>
+          </span>
+          <textarea id="fiche-livraison" class="visually-hidden" readonly tabindex="-1" aria-hidden="true">{{ fiche.texte }}</textarea>
+        </div>
+      </div>
+    </section>
   </div>
 
   <div class="col-lg-4">
-    <section class="carte mb-3">
-      <div class="carte-entete"><h2>Client</h2></div>
-      <div class="carte-corps">
-        <dl class="row mb-0 small">
-          <dt class="col-5 text-body-secondary fw-normal">Nom</dt><dd class="col-7 fw-semibold">{{ commande.nom_client }}</dd>
-          <dt class="col-5 text-body-secondary fw-normal">Téléphone</dt><dd class="col-7 fw-semibold">{{ commande.telephone }}</dd>
-          <dt class="col-5 text-body-secondary fw-normal">Ville</dt><dd class="col-7 fw-semibold">{{ commande.ville }}</dd>
-          <dt class="col-5 text-body-secondary fw-normal">Livraison</dt><dd class="col-7 fw-semibold mb-0">{{ commande.lieu_livraison }}</dd>
-        </dl>
-      </div>
-    </section>
+    <div class="colonne-collante">
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Client</h2></div>
+        <div class="carte-corps">
+          <dl class="fiche-client mb-0">
+            <dt>Nom</dt><dd>{{ commande.nom_client }}</dd>
+            <dt>WhatsApp</dt><dd class="chiffre text-nowrap">{{ commande.telephone_affiche }}</dd>
+            <dt>Ville</dt><dd>{{ commande.ville }}, {{ commande.nom_pays }}{% if commande.lieu_livraison %}<br><span class="fw-normal">{{ commande.lieu_livraison }}</span>{% endif %}</dd>
+            {% if commande.note %}<dt>Message</dt><dd class="fw-normal">{{ commande.note|linebreaksbr }}</dd>{% endif %}
+          </dl>
+        </div>
+      </section>
 
-    <form method="post" class="carte mb-3">
-      {% csrf_token %}
-      <div class="carte-entete"><h2>Suivi</h2></div>
-      <div class="carte-corps">
-        <div class="mb-3">
-          <label class="form-label" for="{{ form.statut.id_for_label }}">Statut</label>
-          {{ form.statut }}
+      <form method="post" class="carte">
+        {% csrf_token %}
+        <div class="carte-entete"><h2>Suivi</h2></div>
+        <div class="carte-corps">
+          <div class="row g-3 mb-3">
+            <div class="col-12">
+              <label class="form-label" for="{{ form.statut.id_for_label }}">Statut</label>
+              {{ form.statut }}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.mode_paiement.id_for_label }}">Paiement</label>
+              {{ form.mode_paiement }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.frais_livraison.id_for_label }}">Frais de livraison</label>
+            <div class="input-group">{{ form.frais_livraison }}<span class="input-group-text">FCFA</span></div>
+            {% if commande.livraison_a_confirmer %}<div class="form-text text-warning-emphasis">À confirmer : indiquez le prix de l'envoi, le total sera recalculé.</div>{% endif %}
+          </div>
+          <div class="form-check form-switch mb-3">
+            {{ form.paiement_recu }}
+            <label class="form-check-label" for="{{ form.paiement_recu.id_for_label }}">Paiement reçu{% if commande.date_paiement %} <span class="text-body-secondary small">(le {{ commande.date_paiement|date:"d/m/Y à H:i" }})</span>{% endif %}</label>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.note_interne.id_for_label }}">Note interne <span class="fw-normal text-body-secondary">(visible seulement ici)</span></label>
+            {{ form.note_interne }}
+          </div>
+          <button type="submit" class="btn btn-mo w-100"><i class="bi bi-check2" aria-hidden="true"></i> Mettre à jour</button>
         </div>
-        <div class="mb-3">
-          <label class="form-label" for="{{ form.mode_paiement.id_for_label }}">Paiement à la livraison</label>
-          {{ form.mode_paiement }}
-        </div>
-        <div class="form-check form-switch mb-3">
-          {{ form.paiement_recu }}
-          <label class="form-check-label" for="{{ form.paiement_recu.id_for_label }}">Paiement reçu{% if commande.date_paiement %} <span class="text-body-secondary small">(le {{ commande.date_paiement|date:"d/m/Y à H:i" }})</span>{% endif %}</label>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="{{ form.note_interne.id_for_label }}">Note interne</label>
-          {{ form.note_interne }}
-          <div class="form-text">{{ form.note_interne.help_text }}</div>
-        </div>
-        <button type="submit" class="btn btn-mo w-100"><i class="bi bi-check2" aria-hidden="true"></i> Mettre à jour</button>
-      </div>
-    </form>
-
-    <section class="carte">
-      <div class="carte-entete"><h2>Message au client</h2></div>
-      <div class="carte-corps">
-        <label class="visually-hidden" for="message-client">Message prêt à envoyer</label>
-        <textarea id="message-client" class="form-control mb-2" rows="4" readonly>{{ message_client }}</textarea>
-        <button type="button" class="btn btn-contour w-100" data-copier="message-client"><i class="bi bi-clipboard" aria-hidden="true"></i> Copier le message</button>
-      </div>
-    </section>
+      </form>
+      <form method="post" action="{% url 'gestion:commande_supprimer' commande.pk %}" class="mt-2 text-center" onsubmit="return confirm('Supprimer définitivement la commande {{ commande.numero }} ? À réserver aux commandes de test ou en double.')">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none"><i class="bi bi-trash3" aria-hidden="true"></i> Supprimer cette commande</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

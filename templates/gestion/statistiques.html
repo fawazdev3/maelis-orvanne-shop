@@ -1,0 +1,129 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Statistiques{% endblock %}
+{% block titre_page %}Statistiques{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Une vente compte le jour où la commande est marquée « Livrée ».</p>{% endblock %}
+{% block actions %}
+  <div class="dropdown">
+    <button class="btn btn-contour dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Exporter vers Excel</button>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item" href="{% url 'gestion:statistiques_export' %}?periode={{ type }}&ref={{ ref }}&quoi=ventes">Ventes de la période</a></li>
+      <li><a class="dropdown-item" href="{% url 'gestion:statistiques_export' %}?periode={{ type }}&ref={{ ref }}&quoi=depenses">Dépenses de la période</a></li>
+    </ul>
+  </div>
+{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-xl-3">
+    <div class="carte stat">
+      <span class="stat-libelle">Ventes aujourd'hui</span>
+      <span class="stat-valeur">{{ jour.ventes|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">{{ jour.nb_commandes }} commande{{ jour.nb_commandes|pluralize }} livrée{{ jour.nb_commandes|pluralize }}</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="carte stat">
+      <span class="stat-libelle">Bénéfice aujourd'hui</span>
+      <span class="stat-valeur {% if jour.benefice < 0 %}text-danger{% endif %}">{{ jour.benefice|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">après coût d'achat et dépenses</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="carte stat">
+      <span class="stat-libelle">Ventes en {{ nom_ce_mois }}</span>
+      <span class="stat-valeur">{{ ce_mois.ventes|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">{{ ce_mois.nb_commandes }} commande{{ ce_mois.nb_commandes|pluralize }} livrée{{ ce_mois.nb_commandes|pluralize }}</span>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="carte stat stat-accent">
+      <span class="stat-libelle">Bénéfice en {{ nom_ce_mois }}</span>
+      <span class="stat-valeur {% if ce_mois.benefice < 0 %}text-danger{% endif %}">{{ ce_mois.benefice|montant }}<span class="unite">FCFA</span></span>
+      <span class="stat-note">ce que la boutique a gagné ce mois-ci</span>
+    </div>
+  </div>
+</div>
+
+<div class="navigation-periode mb-3">
+  <div class="onglets-periode" role="tablist">
+    <a href="?periode=jour" class="{% if type == 'jour' %}actif{% endif %}">Jour</a>
+    <a href="?periode=mois" class="{% if type == 'mois' %}actif{% endif %}">Mois</a>
+    <a href="?periode=annee" class="{% if type == 'annee' %}actif{% endif %}">Année</a>
+  </div>
+  {% if prec %}<a href="?periode={{ type }}&ref={{ prec }}" class="btn btn-contour btn-icone" aria-label="Période précédente"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>{% endif %}
+  <span class="periode">{{ libelle|capfirst }}</span>
+  {% if suiv %}<a href="?periode={{ type }}&ref={{ suiv }}" class="btn btn-contour btn-icone" aria-label="Période suivante"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>{% else %}<span class="btn btn-contour btn-icone disabled" aria-hidden="true"><i class="bi bi-chevron-right"></i></span>{% endif %}
+</div>
+
+<div class="row g-3 align-items-start">
+  <div class="col-lg-7">
+    <section class="carte mb-3">
+      <div class="carte-entete"><h2>Résultat — {{ libelle }}</h2><span class="small text-body-secondary">{{ s.nb_commandes }} commande{{ s.nb_commandes|pluralize }} livrée{{ s.nb_commandes|pluralize }}{% if s.nb_commandes %} · panier moyen {{ s.panier_moyen|fcfa }}{% endif %}</span></div>
+      <table class="table compte-resultat mb-0">
+        <tbody>
+          <tr><th scope="row">Ventes (articles)</th><td class="chiffre">{{ s.ventes|fcfa }}</td></tr>
+          <tr class="moins"><th scope="row">Coût d'achat des articles vendus</th><td class="chiffre">− {{ s.cout_achat|fcfa }}</td></tr>
+          <tr class="sous-total"><th scope="row">Marge sur les articles{% if s.ventes %} <span class="fw-normal text-body-secondary">({{ s.taux_marge }} %)</span>{% endif %}</th><td class="chiffre">{{ s.marge|fcfa }}</td></tr>
+          <tr class="plus"><th scope="row">Frais de livraison encaissés</th><td class="chiffre">+ {{ s.frais_livraison|fcfa }}</td></tr>
+          <tr class="moins"><th scope="row">Dépenses (pub, transport, emballage…)</th><td class="chiffre">− {{ s.autres_depenses|fcfa }}</td></tr>
+          <tr class="resultat"><th scope="row">Bénéfice</th><td class="chiffre {% if s.benefice < 0 %}text-danger{% endif %}">{{ s.benefice|fcfa }}</td></tr>
+        </tbody>
+      </table>
+      {% if s.ventes_sans_cout %}
+        <div class="alerte-douce"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> {{ s.ventes_sans_cout|fcfa }} de ventes concernent des produits sans prix d'achat : leur coût n'est pas compté, le bénéfice est donc surestimé. Renseignez le prix d'achat des produits.</div>
+      {% endif %}
+    </section>
+
+    {% if graphique %}
+      <section class="carte">
+        <div class="carte-entete"><h2>Ventes {% if type == 'mois' %}jour par jour{% else %}mois par mois{% endif %}</h2></div>
+        <div class="carte-corps">
+          <div class="graphique {% if type == 'annee' %}graphique-large{% endif %}" role="img" aria-label="Ventes de la période">
+            {% for b in graphique %}<div class="barre {% if b.montant %}pleine{% endif %}" style="height: {% if b.montant %}{{ b.hauteur }}%{% else %}2px{% endif %}" title="{{ b.libelle }} : {{ b.montant|fcfa }}"></div>{% endfor %}
+          </div>
+          <div class="graphique-legende">
+            {% if type == 'annee' %}{% for b in graphique %}<span>{{ b.libelle }}</span>{% endfor %}
+            {% else %}<span>{{ graphique.0.libelle }}</span>{% with d=graphique|last %}<span>{{ d.libelle }}</span>{% endwith %}{% endif %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5">
+    <section class="carte mb-3">
+      <div class="carte-entete"><h2>Produits les plus vendus</h2></div>
+      {% if s.top %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th scope="col">Produit</th><th scope="col" class="text-end">Qté</th><th scope="col" class="text-end">Marge</th></tr></thead>
+            <tbody>
+              {% for t in s.top %}
+                <tr>
+                  <td>{{ t.nom_produit }}<div class="small text-body-secondary chiffre">{{ t.ca|fcfa }} de ventes</div></td>
+                  <td class="text-end chiffre">{{ t.qte }}</td>
+                  <td class="text-end chiffre text-nowrap">{% if t.marge is not None %}{{ t.marge|fcfa }}{% else %}<span class="small text-body-secondary">prix d'achat ?</span>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte-corps small text-body-secondary">Aucune vente livrée sur cette période.</div>
+      {% endif %}
+    </section>
+
+    <section class="carte">
+      <div class="carte-entete"><h2>À savoir</h2></div>
+      <div class="carte-corps">
+        <dl class="fiche-client mb-0 fiche-large">
+          <dt>En cours</dt><dd>{{ s.en_cours_n }} commande{{ s.en_cours_n|pluralize }} pas encore livrée{{ s.en_cours_n|pluralize }}{% if s.en_cours_montant %} · {{ s.en_cours_montant|fcfa }}{% endif %}</dd>
+          <dt>Marchandise</dt><dd>{{ s.achats_marchandise|fcfa }} achetés (arrivages). Ce montant n'est pas retiré du bénéfice : seul le coût des articles vendus l'est.</dd>
+          {% for d in s.depenses_par_cat %}<dt>{{ d.categorie__nom }}</dt><dd>{{ d.total|fcfa }}</dd>{% endfor %}
+        </dl>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

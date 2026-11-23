@@ -4,7 +4,7 @@
 {% block titre_page %}Bonjour{% if user.first_name %} {{ user.first_name }}{% endif %}{% endblock %}
 {% block sous_titre %}<p class="sous-titre">Voici l'activité de votre boutique.</p>{% endblock %}
 {% block actions %}
-  <a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Ajouter un produit</a>
+  {% if "produits" in acces %}<a href="{% url 'gestion:produit_ajouter' %}" class="btn btn-mo"><i class="bi bi-plus-lg" aria-hidden="true"></i> Ajouter un produit</a>{% endif %}
 {% endblock %}
 
 {% block contenu %}
@@ -96,6 +96,7 @@
   </div>
 
   <div class="col-lg-4 d-flex flex-column gap-3">
+    {% if "produits" in acces %}
     <section class="carte">
       <div class="carte-entete"><h2>Actions rapides</h2></div>
       <div class="carte-corps d-grid gap-2">
@@ -104,6 +105,7 @@
         <a href="{% url 'gestion:produits_liste' %}?filtre=promo" class="btn btn-contour"><i class="bi bi-percent" aria-hidden="true"></i> Voir les promotions</a>
       </div>
     </section>
+    {% endif %}
 
     <section class="carte">
       <div class="carte-entete"><h2>Ruptures de stock</h2></div>

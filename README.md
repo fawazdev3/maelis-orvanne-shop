@@ -1,140 +1,174 @@
-# Maélis Orvanne Shop — étape 1 : projet et back-office
+# Maélis Orvanne Shop
 
-Site de la boutique en **Django + Bootstrap 5 + JavaScript**.
-Cette étape contient le **back-office sur mesure** (aux couleurs bordeaux et or de la marque) pour gérer :
+Boutique en ligne avec commande par WhatsApp et paiement à la livraison, pensée pour le Togo et la sous-région (Bénin, Ghana).
+Le client choisit ses produits et valide sa commande en trois étapes. La commande est enregistrée dans le back-office, puis WhatsApp s'ouvre avec le message déjà rédigé.
 
-- les **catégories** (Thés, puis tout ce que vous ajouterez) ;
-- les **produits** : nom, photo, description, prix, **prix promo** (prix barré et pourcentage de remise calculés automatiquement), en stock ou en rupture, visible ou caché, mis en avant sur l'accueil ;
-- les **commandes** : liste filtrable par statut, détail, changement de statut (nouvelle → confirmée → en livraison → livrée / annulée), note interne, bouton pour écrire au client sur WhatsApp ;
-- le **paiement à la livraison** : le client paie au livreur, en espèces ou par Mobile Money. Un bouton « Payée » marque la commande comme encaissée (la date est enregistrée), et l'onglet « À encaisser » liste les commandes pas encore payées ;
-- un **tableau de bord** : nouvelles commandes, argent encaissé ce mois, montant restant à encaisser, graphique des ventes sur 30 jours, ruptures de stock.
-
-> **Pourquoi la page Commandes est vide ?** Les commandes viendront du site public, construit à l'étape 2. En attendant, lance `donnees_exemple.bat` pour voir une commande de test.
-
-Le site public (catalogue, panier, envoi de la commande sur WhatsApp) arrive à l'**étape 2**. Pour l'instant, l'adresse `/` affiche une page « bientôt en ligne ».
+**Technologies :** Django 5, Bootstrap 5, JavaScript sans framework. Base SQLite en développement, PostgreSQL en production.
 
 ---
 
-## 1. Installer et lancer sur ton PC (Windows)
+## Fonctionnalités
 
-### Le plus simple : les fichiers .bat (double-clic)
+### Site public
+- **Accueil** : produits mis en avant, promotions et catégories.
+- **Catalogue** : filtre par catégorie, recherche et tri (prix, promotions). Les produits épuisés restent visibles, sans pouvoir être ajoutés au panier.
+- **Fiche produit** : photo, prix barré en promotion, choix de la quantité, boutons « Ajouter au panier » et « Commander maintenant », produits similaires.
+- **Commande en trois étapes** :
+  1. **Panier** : quantités modifiables et total calculé automatiquement. Le panier est gardé dans le navigateur.
+  2. **Livraison** : pays, ville choisie dans une liste (ou « Autre ville »), nom et numéro WhatsApp. L'indicatif (+228, +229, +233) suit le pays. Le numéro est vérifié selon les règles du pays (Togo 8 chiffres, Bénin 10 chiffres commençant par 01, Ghana 0 + 9 chiffres) et enregistré au format international.
+  3. **Confirmation** : récapitulatif, frais de livraison selon la ville, choix du paiement (espèces ou Mobile Money à la réception) et message facultatif.
+- **Envoi WhatsApp** : après validation, WhatsApp s'ouvre vers le numéro de la boutique avec la commande complète. Le client envoie ensuite sa position.
+- **Aucun paiement en ligne** : tout se règle à la livraison.
 
-| Fichier | Rôle |
-|---|---|
-| `installer.bat` | **À lancer une seule fois** : crée l'environnement, installe Django, crée la base et ton compte gestionnaire |
-| `lancer.bat` | Démarre le site et ouvre le back-office dans ton navigateur |
-| `creer_compte.bat` | Crée un autre compte gestionnaire (par exemple pour ton collègue) |
-| `donnees_exemple.bat` | Ajoute une catégorie, des produits et une commande « (exemple) » pour essayer |
-| `tests.bat` | Lance les tests automatiques |
+### Back-office (`/gestion/`)
+- **Tableau de bord** : nouvelles commandes, montant encaissé, montant restant à encaisser, ventes des 30 derniers jours et ruptures de stock.
+- **Commandes** :
+  - liste filtrable et recherche (numéro, nom, téléphone, ville) ;
+  - fiche détaillée avec statut (nouvelle, confirmée, en livraison, livrée, annulée), paiement reçu et note interne ;
+  - frais de livraison modifiables, avec recalcul du total.
+- **WhatsApp en un clic** : messages déjà rédigés pour le client (confirmer la commande, annoncer la livraison, remercier) et fiche de livraison à transmettre à la personne qui livre (adresse, carte, montant à encaisser).
+- **Produits et catégories** : photo, description, prix normal, prix promotionnel (remise calculée automatiquement), prix d'achat (jamais visible des clients), stock, visibilité et mise en avant.
+- **Stock** : chaque arrivage enregistre la quantité et le prix d'achat. Il met le stock à jour et crée la dépense correspondante. Le stock baisse quand une commande passe « Livrée », et remonte si elle est annulée. À 0, le produit s'affiche « épuisé ».
+- **Dépenses** : par mois et par catégorie (publicité Facebook, transport et envoi de colis, emballage et divers, catégories personnalisées).
+- **Statistiques** : ventes et bénéfice du jour et du mois, résultat détaillé par jour, mois ou année. Formule : ventes − coût d'achat des articles vendus + frais de livraison − dépenses. S'y ajoutent les produits les plus vendus et un export Excel des ventes et des dépenses.
+- **Tarifs de livraison** : frais par ville et par pays. Un tarif vide signifie « à confirmer » ; dans ce cas, le montant se règle ensuite dans la commande.
+- **Équipe et rôles** :
+  - comptes à créer, modifier, désactiver ou supprimer ;
+  - rôles personnalisables, avec les pages autorisées pour chacun.
+  
+  Le rôle **Administrateur** a accès à tout. Le rôle **Comptabilité** est fourni par défaut.
+- **Réglages du site** :
+  - nom, phrase d'accroche, numéro WhatsApp, pays livrés, réseaux sociaux et Pixel Facebook ;
+  - pause des commandes et mode maintenance ;
+  - sauvegarde des données ;
+  - retrait des données d'exemple.
+- **Thèmes clair et sombre.**
 
-### Le fichier .env
+---
 
-Il contient tes réglages personnels : clé secrète, numéro WhatsApp de la boutique, base de données. Ouvre-le avec le Bloc-notes pour le modifier. Le fichier `.env.exemple` sert de modèle. **Ne partage jamais `.env`**, et ne le mets pas sur GitHub : il est déjà exclu dans `.gitignore`.
+## Installation (Windows)
 
-### Ou à la main, dans un terminal
+Prérequis : Python 3.10 ou plus récent.
 
-Ouvre un terminal dans le dossier `maelis_orvanne`, puis :
-
-```bash
+```
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
+copy .env.exemple .env
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
 ```
 
-> Sur Linux ou macOS, remplace `venv\Scripts\activate` par `source venv/bin/activate`.
+- Site public : http://127.0.0.1:8000/
+- Back-office : http://127.0.0.1:8000/gestion/
 
-Pendant `createsuperuser`, choisis ton nom d'utilisateur et ton mot de passe : ce sont tes identifiants du back-office.
+Le compte créé avec `createsuperuser` est administrateur.
 
-Ouvre ensuite **http://127.0.0.1:8000/gestion/** dans ton navigateur et connecte-toi.
+Les mêmes opérations existent en double-clic : `installer.bat`, `creer_compte.bat`, `lancer.bat`, `tests.bat`.
 
-### Essayer avec des données d'exemple (facultatif)
+**Données d'exemple** (facultatif) : `python manage.py donnees_exemple` crée une catégorie, trois produits et une commande de test. On les retire ensuite depuis **Réglages du site** → Maintenance.
 
-```bash
-python manage.py donnees_exemple
-```
+**Tests :** `python manage.py test`
 
-Cette commande crée une catégorie, trois produits et une commande, tous marqués « (exemple) ». Supprime-les depuis le back-office quand tu as fini d'essayer.
-
-### Lancer les tests
-
-```bash
-python manage.py test
-```
+**Après une mise à jour du code :** `python manage.py migrate`, puis relancer le serveur.
 
 ---
 
-## 2. Les adresses
+## Configuration
 
-| Adresse | Rôle |
+### Fichier `.env`
+Copié depuis `.env.exemple`. Il ne doit jamais être partagé ni envoyé sur GitHub : il est exclu par `.gitignore`.
+
+| Variable | Rôle |
 |---|---|
-| `/gestion/` | Back-office de la boutique (tableau de bord) |
-| `/gestion/produits/` | Produits |
-| `/gestion/categories/` | Catégories |
-| `/gestion/commandes/` | Commandes |
-| `/admin-technique/` | Administration Django de secours (dépannage seulement) |
-| `/` | Site public (provisoire, construit à l'étape 2) |
+| `DJANGO_SECRET_KEY` | Clé secrète unique et longue. Obligatoire en production. |
+| `DJANGO_DEBUG` | `1` en développement, `0` en production |
+| `DJANGO_ALLOWED_HOSTS` | Domaines autorisés, ex. `maelisorvanne.com,www.maelisorvanne.com` |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | Ex. `https://maelisorvanne.com,https://www.maelisorvanne.com` |
+| `DJANGO_DERRIERE_PROXY` | `1` si l'hébergeur passe par un proxy HTTPS |
+| `BOUTIQUE_WHATSAPP`, `BOUTIQUE_PAYS` | Valeurs par défaut. Le back-office (Réglages du site) les remplace. |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Base PostgreSQL. Si `POSTGRES_DB` est vide, SQLite est utilisé. |
 
-Seuls les comptes « membres du personnel » (`is_staff`) peuvent entrer dans le back-office. Le compte créé avec `createsuperuser` l'est automatiquement. Pour ajouter ton collègue, crée-lui un compte dans `/admin-technique/` et coche « Statut équipe ».
+### Réglages modifiables sans toucher au code
+Depuis le back-office :
+- **Réglages du site** : numéro WhatsApp, pays livrés, nom, accroche, réseaux sociaux, Pixel Facebook, pause des commandes, maintenance ;
+- **Livraison** : tarifs par ville ;
+- **Équipe et rôles** : comptes et droits.
+
+Les listes de villes et les règles des numéros de téléphone se trouvent dans `boutique/pays.py`.
 
 ---
 
-## 3. Organisation du projet
+## Adresses
+
+| Adresse | Page |
+|---|---|
+| `/` | Accueil |
+| `/boutique/`, `/boutique/<catégorie>/` | Catalogue |
+| `/produit/<nom>/` | Fiche produit |
+| `/panier/` | Commande en trois étapes |
+| `/commande/<jeton>/merci/` | Confirmation (lien secret propre à chaque commande) |
+| `/gestion/` | Back-office |
+| `/admin-technique/` | Administration Django de secours |
+
+---
+
+## Organisation du projet
 
 ```
 maelis_orvanne/
-├── config/                 Réglages et adresses du projet
-│   ├── settings.py
-│   └── urls.py
-├── boutique/               Les données de la boutique
-│   ├── models.py           Categorie, Produit, Commande, LigneCommande
-│   ├── admin.py            Administration de secours
-│   └── management/commands/donnees_exemple.py
-├── gestion/                Le back-office sur mesure
-│   ├── views.py            Pages du back-office
-│   ├── forms.py            Formulaires (produit, catégorie, commande, connexion)
-│   ├── urls.py
-│   ├── decorators.py       Accès réservé aux gestionnaires
-│   ├── templatetags/gestion_extras.py   Filtre « fcfa » (12 500 FCFA)
-│   └── tests.py
-├── templates/gestion/      Pages HTML du back-office
-├── static/gestion/         CSS (charte bordeaux et or) et JavaScript
-└── media/                  Photos des produits (créé automatiquement)
+├── config/                 Réglages Django, adresses, limites anti-abus
+├── boutique/               Données et site public
+│   ├── models.py           Produits, catégories, commandes, stock, dépenses, tarifs, réglages
+│   ├── views.py            Pages publiques, commande, API du panier
+│   ├── forms.py            Formulaire de commande
+│   ├── pays.py             Pays livrés, villes, règles des numéros
+│   ├── whatsapp.py         Messages WhatsApp (commande, client, livraison)
+│   └── middleware.py       Mode maintenance
+├── gestion/                Back-office
+│   ├── views.py            Tableau de bord, produits, commandes, livraison, équipe
+│   ├── views_finances.py   Stock, dépenses, statistiques, export
+│   ├── views_reglages.py   Réglages du site, sauvegarde
+│   └── roles.py            Rôles et accès par page
+├── templates/              Pages HTML (boutique/ et gestion/)
+├── static/                 CSS, JavaScript, favicon
+└── media/                  Photos des produits (non versionné)
 ```
 
 ### Points techniques
-- **Prix en FCFA**, nombres entiers.
-- **Prix promo** : il doit être inférieur au prix normal (vérifié dans le formulaire). Le site affiche alors le prix barré et le pourcentage de remise.
-- **Commandes** : chaque ligne garde une **copie** du nom et du prix du produit au moment de l'achat. Si tu modifies ou supprimes un produit plus tard, l'historique reste juste.
-- **Numéros de commande** au format `MO-AAAAMMJJ-001`.
-- **Catégories** : une catégorie qui contient encore des produits ne peut pas être supprimée, pour éviter de perdre des produits par erreur.
-- **Numéro WhatsApp de la boutique** : à renseigner plus tard dans `config/settings.py` (`BOUTIQUE_WHATSAPP`) ou par la variable d'environnement du même nom. Il servira à l'étape 2.
+- **Prix :** en FCFA, nombres entiers. Le serveur recalcule toujours les prix à partir de la base, jamais à partir du navigateur.
+- **Lignes de commande :** chacune garde une copie du nom, du prix de vente et du prix d'achat au moment de l'achat, pour que l'historique et les statistiques restent justes.
+- **Numéros de commande :** au format `MO-AAAAMMJJ-001`.
+- **Ventes :** une vente compte dans les statistiques le jour où la commande est marquée « Livrée ».
+- **Achats de marchandise :** ils ne sont pas retirés du bénéfice. Seul le coût d'achat des articles réellement vendus l'est.
 
 ---
 
-## 4. Mise en ligne (plus tard)
+## Sécurité
 
-En production, définis ces variables d'environnement :
+- **Connexion :** blocage de 15 minutes après 5 essais ratés. L'administration technique passe par la même page de connexion. Les mots de passe trop simples sont refusés.
+- **Commandes :** 5 commandes au maximum par adresse IP en 10 minutes, plus un champ piège contre les robots.
+- **Accès :** chaque page du back-office vérifie le rôle de l'utilisateur.
+- **Protections Django :** CSRF, échappement des textes (XSS) et interdiction d'affichage dans un cadre (clickjacking).
+- **Photos :** contenu vérifié (JPG, PNG ou WebP, 5 Mo maximum).
+- **Export Excel :** les formules glissées dans les données clients sont neutralisées.
+- **En production (`DJANGO_DEBUG=0`) :** HTTPS obligatoire, cookies sécurisés et HSTS. Le site refuse de démarrer sans une vraie clé secrète.
 
-```
-DJANGO_SECRET_KEY=une-longue-cle-secrete
-DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=maelisorvanne.com,www.maelisorvanne.com
-DJANGO_CSRF_TRUSTED_ORIGINS=https://maelisorvanne.com,https://www.maelisorvanne.com
-POSTGRES_DB=...  POSTGRES_USER=...  POSTGRES_PASSWORD=...  POSTGRES_HOST=...
-```
-
-Puis lance `python manage.py collectstatic` et `python manage.py migrate`. Pour PostgreSQL, installe aussi `psycopg[binary]`.
+Vérification avant la mise en ligne : `python manage.py check --deploy`
 
 ---
 
-## 5. Prochaine étape
+## Mise en production
 
-**Étape 2 : le site public**
-- accueil avec le logo et les produits mis en avant ;
-- catalogue par catégorie : photo, nom, prix (prix barré en promotion) et bouton « Ajouter au panier » ;
-- panier : quantités et calcul automatique du total ;
-- formulaire : nom, téléphone, ville, lieu de livraison ;
-- commande **enregistrée dans le back-office** puis **envoyée sur WhatsApp**.
+1. Définir les variables du `.env` de production : `DJANGO_DEBUG=0`, clé secrète, domaines et PostgreSQL. Pour PostgreSQL, installer aussi `psycopg[binary]`.
+2. `python manage.py migrate`
+3. `python manage.py collectstatic`
+4. `python manage.py createsuperuser`
+5. Dans le back-office :
+   - régler le numéro WhatsApp et les pays livrés ;
+   - régler les tarifs de livraison ;
+   - retirer les données d'exemple ;
+   - télécharger régulièrement une sauvegarde (Réglages du site → Maintenance).
+
+   Le dossier `media/` (photos des produits) se sauvegarde à part.

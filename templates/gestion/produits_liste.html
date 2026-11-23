@@ -83,6 +83,11 @@
                 </form>
               </td>
               <td>
+{% if p.stock is not None %}
+                  <a href="{% url 'gestion:stock' %}?produit={{ p.pk }}#form-arrivage" class="text-decoration-none" title="Suivi automatique — ajouter un arrivage">
+                    {% if p.stock == 0 %}<span class="etiquette etiquette-alerte">Épuisé</span>{% else %}<span class="etiquette etiquette-ok chiffre">{{ p.stock }} en stock</span>{% endif %}
+                  </a>
+                {% else %}
                 <form method="post" action="{% url 'gestion:produit_basculer' p.pk 'en_stock' %}">
                   {% csrf_token %}
                   <input type="hidden" name="suivant" value="{{ request.get_full_path }}">
@@ -90,6 +95,7 @@
                     {% if p.en_stock %}<span class="etiquette etiquette-ok">En stock</span>{% else %}<span class="etiquette etiquette-alerte">Rupture</span>{% endif %}
                   </button>
                 </form>
+                {% endif %}
               </td>
               <td class="text-end text-nowrap">
                 <a href="{% url 'gestion:produit_modifier' p.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier {{ p.nom }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>

@@ -1,0 +1,127 @@
+{% extends "gestion/base.html" %}
+{% block titre %}Réglages du site{% endblock %}
+{% block titre_page %}Réglages du site{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Informations de la boutique, ouverture des commandes et maintenance.</p>{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 align-items-start">
+  <div class="col-lg-7">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>État du site</h2></div>
+        <div class="carte-corps">
+          <div class="reglage-ligne">
+            <div class="form-check form-switch">
+              {{ form.commandes_ouvertes }}
+              <label class="form-check-label fw-semibold" for="{{ form.commandes_ouvertes.id_for_label }}">Commandes ouvertes</label>
+            </div>
+            <p class="form-text mt-1 mb-2">Désactivez pour mettre les commandes en pause (rupture, congés) : le site reste visible, mais on ne peut plus valider de commande.</p>
+            {{ form.message_commandes_fermees }}
+          </div>
+          <div class="reglage-ligne">
+            <div class="form-check form-switch">
+              {{ form.maintenance }}
+              <label class="form-check-label fw-semibold" for="{{ form.maintenance.id_for_label }}">Mode maintenance</label>
+            </div>
+            <p class="form-text mt-1 mb-2">Les visiteurs voient une page d'attente à la place du site. Vous, connecté, continuez à voir le site normalement.</p>
+            {{ form.message_maintenance }}
+          </div>
+        </div>
+      </section>
+
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Boutique</h2></div>
+        <div class="carte-corps">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label" for="{{ form.nom_boutique.id_for_label }}">{{ form.nom_boutique.label|capfirst }}</label>
+              {{ form.nom_boutique }}
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="{{ form.slogan.id_for_label }}">{{ form.slogan.label|capfirst }}</label>
+              {{ form.slogan }}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.whatsapp.id_for_label }}">{{ form.whatsapp.label|capfirst }}</label>
+              {{ form.whatsapp }}
+              <div class="form-text">{{ form.whatsapp.help_text }}{% if not obj.whatsapp and whatsapp_env %} Actuellement, le numéro du fichier .env est utilisé : {{ whatsapp_env }}.{% elif not obj.whatsapp_effectif %} <span class="text-danger">Aucun numéro : WhatsApp ne s'ouvre pas après une commande.</span>{% endif %}</div>
+              {% for e in form.whatsapp.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <fieldset>
+                <legend class="form-label">{{ form.pays.label }}</legend>
+                <div class="cases-pages cases-pays">
+                  {% for case in form.pays %}<label class="form-check">{{ case.tag }} <span class="form-check-label">{{ case.choice_label }}</span></label>{% endfor %}
+                </div>
+                {% for e in form.pays.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+                <div class="form-text">Le premier pays coché est proposé par défaut au client. Les tarifs se règlent dans Livraison.</div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Réseaux sociaux et publicité</h2></div>
+        <div class="carte-corps">
+          <div class="row g-3">
+            <div class="col-sm-4">
+              <label class="form-label" for="{{ form.lien_facebook.id_for_label }}">Facebook</label>
+              {{ form.lien_facebook }}
+              {% for e in form.lien_facebook.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label" for="{{ form.lien_instagram.id_for_label }}">Instagram</label>
+              {{ form.lien_instagram }}
+              {% for e in form.lien_instagram.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label" for="{{ form.lien_tiktok.id_for_label }}">TikTok</label>
+              {{ form.lien_tiktok }}
+              {% for e in form.lien_tiktok.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.pixel_facebook.id_for_label }}">{{ form.pixel_facebook.label|capfirst }}</label>
+              {{ form.pixel_facebook }}
+              <div class="form-text">{{ form.pixel_facebook.help_text }} Le site envoie alors à Facebook les ajouts au panier et les commandes.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <button type="submit" class="btn btn-mo px-4"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer les réglages</button>
+    </form>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="colonne-collante">
+      <section class="carte mb-3">
+        <div class="carte-entete"><h2>Maintenance</h2></div>
+        <div class="liste-maintenance">
+          <div class="item">
+            <div><strong>Sauvegarde des données</strong><span>Produits, commandes, stock, dépenses, réglages et rôles dans un fichier. À faire régulièrement.</span></div>
+            <a href="{% url 'gestion:sauvegarde' %}" class="btn btn-contour btn-sm text-nowrap"><i class="bi bi-download" aria-hidden="true"></i> Télécharger</a>
+          </div>
+          <div class="item">
+            <div><strong>Données d'exemple</strong>
+              <span>{% if a_des_exemples %}{{ exemple.produits }} produit{{ exemple.produits|pluralize }}, {{ exemple.commandes }} commande{{ exemple.commandes|pluralize }} de test. À retirer avant d'ouvrir le site au public.{% else %}Aucune donnée d'exemple.{% endif %}</span></div>
+            {% if a_des_exemples %}
+              <form method="post" action="{% url 'gestion:retirer_exemples' %}" onsubmit="return confirm('Retirer les produits, la catégorie et la commande d\'exemple ?')">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-contour btn-sm text-danger text-nowrap"><i class="bi bi-trash3" aria-hidden="true"></i> Retirer</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+      <section class="carte">
+        <div class="carte-entete"><h2>Informations</h2></div>
+        <div class="carte-corps">
+          <dl class="fiche-client fiche-large mb-0">{% for nom, valeur in infos %}<dt>{{ nom }}</dt><dd>{{ valeur }}</dd>{% endfor %}</dl>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -13,9 +13,9 @@
   <span class="titre-serif" style="letter-spacing:.08em">MAÉLIS ORVANNE</span>
   <div class="d-flex align-items-center gap-1">
     {% include "gestion/_bouton_theme.html" %}
-    <a class="btn" href="{% url 'gestion:commandes_liste' %}?statut=nouvelle" aria-label="Nouvelles commandes">
+    {% if "commandes" in acces %}<a class="btn" href="{% url 'gestion:commandes_liste' %}?statut=nouvelle" aria-label="Nouvelles commandes">
       <i class="bi bi-bag" aria-hidden="true"></i>{% if nb_nouvelles_commandes %}<span class="badge-nav ms-1">{{ nb_nouvelles_commandes }}</span>{% endif %}
-    </a>
+    </a>{% endif %}
   </div>
 </div>
 
@@ -32,21 +32,54 @@
     <a href="{% url 'gestion:tableau_de_bord' %}" class="{% if page == 'tableau_de_bord' %}active{% endif %}" {% if page == 'tableau_de_bord' %}aria-current="page"{% endif %}>
       <i class="bi bi-grid-1x2" aria-hidden="true"></i> Tableau de bord
     </a>
-    <span class="mo-nav-titre">Boutique</span>
+    {% if "commandes" in acces or "produits" in acces or "stock" in acces %}<span class="mo-nav-titre">Boutique</span>{% endif %}
+    {% if "commandes" in acces %}
     <a href="{% url 'gestion:commandes_liste' %}" class="{% if page == 'commandes' %}active{% endif %}" {% if page == 'commandes' %}aria-current="page"{% endif %}>
       <i class="bi bi-bag-check" aria-hidden="true"></i> Commandes
       {% if nb_nouvelles_commandes %}<span class="badge-nav" aria-label="{{ nb_nouvelles_commandes }} nouvelles">{{ nb_nouvelles_commandes }}</span>{% endif %}
     </a>
+    {% endif %}
+    {% if "produits" in acces %}
     <a href="{% url 'gestion:produits_liste' %}" class="{% if page == 'produits' %}active{% endif %}" {% if page == 'produits' %}aria-current="page"{% endif %}>
       <i class="bi bi-box-seam" aria-hidden="true"></i> Produits
     </a>
     <a href="{% url 'gestion:categories_liste' %}" class="{% if page == 'categories' %}active{% endif %}" {% if page == 'categories' %}aria-current="page"{% endif %}>
       <i class="bi bi-tags" aria-hidden="true"></i> Catégories
     </a>
-    <span class="mo-nav-titre">Raccourcis</span>
-    <a href="{% url 'gestion:produit_ajouter' %}">
-      <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un produit
+    {% endif %}
+    {% if "stock" in acces %}
+    <a href="{% url 'gestion:stock' %}" class="{% if page == 'stock' %}active{% endif %}" {% if page == 'stock' %}aria-current="page"{% endif %}>
+      <i class="bi bi-boxes" aria-hidden="true"></i> Stock
     </a>
+    {% endif %}
+    {% if "statistiques" in acces or "depenses" in acces %}<span class="mo-nav-titre">Finances</span>{% endif %}
+    {% if "statistiques" in acces %}
+    <a href="{% url 'gestion:statistiques' %}" class="{% if page == 'statistiques' %}active{% endif %}" {% if page == 'statistiques' %}aria-current="page"{% endif %}>
+      <i class="bi bi-graph-up" aria-hidden="true"></i> Statistiques
+    </a>
+    {% endif %}
+    {% if "depenses" in acces %}
+    <a href="{% url 'gestion:depenses' %}" class="{% if page == 'depenses' %}active{% endif %}" {% if page == 'depenses' %}aria-current="page"{% endif %}>
+      <i class="bi bi-wallet2" aria-hidden="true"></i> Dépenses
+    </a>
+    {% endif %}
+    {% if "livraison" in acces or "equipe" in acces or "reglages" in acces %}<span class="mo-nav-titre">Administration</span>{% endif %}
+    {% if "livraison" in acces %}
+    <a href="{% url 'gestion:livraison_tarifs' %}" class="{% if page == 'livraison' %}active{% endif %}" {% if page == 'livraison' %}aria-current="page"{% endif %}>
+      <i class="bi bi-truck" aria-hidden="true"></i> Livraison
+    </a>
+    {% endif %}
+    {% if "equipe" in acces %}
+    <a href="{% url 'gestion:equipe' %}" class="{% if page == 'equipe' %}active{% endif %}" {% if page == 'equipe' %}aria-current="page"{% endif %}>
+      <i class="bi bi-people" aria-hidden="true"></i> Équipe et rôles
+    </a>
+    {% endif %}
+    {% if "reglages" in acces %}
+    <a href="{% url 'gestion:reglages' %}" class="{% if page == 'reglages' %}active{% endif %}" {% if page == 'reglages' %}aria-current="page"{% endif %}>
+      <i class="bi bi-gear" aria-hidden="true"></i> Réglages du site
+    </a>
+    {% endif %}
+    <span class="mo-nav-titre">Site</span>
     <a href="{% url 'boutique:accueil' %}" target="_blank" rel="noopener">
       <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i> Voir le site
     </a>
@@ -56,7 +89,7 @@
     <span class="mo-avatar" aria-hidden="true">{{ user.get_username|slice:":1" }}</span>
     <span class="mo-utilisateur">
       <span class="nom">{{ user.get_full_name|default:user.get_username }}</span>
-      <span class="role">Gestionnaire</span>
+      <span class="role">{{ nom_role }}</span>
     </span>
     {% include "gestion/_bouton_theme.html" %}
     <form method="post" action="{% url 'gestion:deconnexion' %}">

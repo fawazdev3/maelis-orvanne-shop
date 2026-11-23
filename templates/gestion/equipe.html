@@ -1,0 +1,152 @@
+{% extends "gestion/base.html" %}
+{% block titre %}Équipe et rôles{% endblock %}
+{% block titre_page %}Équipe et rôles{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Qui peut se connecter au back-office, et à quelles pages.</p>{% endblock %}
+{% block actions %}
+  <a href="{% url 'gestion:equipe' %}" class="btn btn-contour"><i class="bi bi-person-plus" aria-hidden="true"></i> Nouveau compte</a>
+  <a href="{% url 'gestion:role_ajouter' %}" class="btn btn-contour"><i class="bi bi-shield-plus" aria-hidden="true"></i> Nouveau rôle</a>
+{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 align-items-start">
+  <div class="col-lg-7">
+    <section class="carte mb-3">
+      <div class="carte-entete"><h2>Comptes</h2><span class="small text-body-secondary">{{ comptes|length }}</span></div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th scope="col">Compte</th><th scope="col">Rôle</th><th scope="col">Dernière connexion</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            {% for c in comptes %}
+              <tr class="{% if compte and compte.pk == c.u.pk %}ligne-active{% endif %}{% if not c.u.is_active %} ligne-inactive{% endif %}">
+                <td>
+                  <span class="fw-semibold">{{ c.u.first_name|default:c.u.username }}</span>
+                  {% if c.u == user %}<span class="small text-body-secondary">(vous)</span>{% endif %}
+                  <div class="small text-body-secondary">{{ c.u.username }}{% if not c.u.is_active %} · <span class="text-danger">désactivé</span>{% endif %}</div>
+                </td>
+                <td><span class="etiquette {% if c.role == 'Administrateur' %}etiquette-promo{% else %}etiquette-ok{% endif %}">{{ c.role }}</span></td>
+                <td class="small text-body-secondary text-nowrap">{{ c.u.last_login|date:"d/m/Y H:i"|default:"jamais" }}</td>
+                <td class="text-end text-nowrap">
+                  <a href="{% url 'gestion:equipe_modifier' c.u.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier {{ c.u.username }}" title="Modifier"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                  {% if c.u != user %}
+                    <form method="post" action="{% url 'gestion:compte_basculer' c.u.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-contour btn-icone" title="{% if c.u.is_active %}Désactiver{% else %}Réactiver{% endif %}" aria-label="{% if c.u.is_active %}Désactiver{% else %}Réactiver{% endif %} {{ c.u.username }}"><i class="bi {% if c.u.is_active %}bi-pause-circle{% else %}bi-play-circle{% endif %}" aria-hidden="true"></i></button>
+                    </form>
+                    <form method="post" action="{% url 'gestion:compte_supprimer' c.u.pk %}" class="d-inline" onsubmit="return confirm('Supprimer définitivement le compte « {{ c.u.username|escapejs }} » ? Ses dépenses et arrivages restent enregistrés.')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-contour btn-icone text-danger" title="Supprimer" aria-label="Supprimer {{ c.u.username }}"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-entete"><h2>Rôles</h2><span class="small text-body-secondary">{{ roles|length }}</span></div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th scope="col">Rôle</th><th scope="col">Pages autorisées</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            {% for r in roles %}
+              <tr{% if role and role.pk == r.g.pk %} class="ligne-active"{% endif %}>
+                <td><span class="fw-semibold">{{ r.g.name }}</span><div class="small text-body-secondary">{{ r.nb }} compte{{ r.nb|pluralize }}</div></td>
+                <td>
+                  <div class="puces-pages">{% for p in r.pages %}<span>{{ p }}</span>{% empty %}<span class="text-danger">Aucune page</span>{% endfor %}</div>
+                </td>
+                <td class="text-end text-nowrap">
+                  {% if r.fixe %}<span class="small text-body-secondary">fixe</span>{% else %}
+                    <a href="{% url 'gestion:role_modifier' r.g.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier le rôle {{ r.g.name }}" title="Modifier"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                    <form method="post" action="{% url 'gestion:role_supprimer' r.g.pk %}" class="d-inline" onsubmit="return confirm('Supprimer le rôle « {{ r.g.name|escapejs }} » ?')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-contour btn-icone text-danger" aria-label="Supprimer le rôle {{ r.g.name }}" title="Supprimer"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="colonne-collante">
+      {% if mode == "role" %}
+        <form method="post" class="carte mb-3" novalidate>
+          {% csrf_token %}
+          <div class="carte-entete">
+            <h2>{% if role %}Modifier le rôle « {{ role.name }} »{% else %}Nouveau rôle{% endif %}</h2>
+            <a href="{% url 'gestion:equipe' %}" class="small">Annuler</a>
+          </div>
+          <div class="carte-corps">
+            <div class="mb-3">
+              <label class="form-label" for="{{ form.nom.id_for_label }}">{{ form.nom.label }}</label>
+              {{ form.nom }}
+              {% for e in form.nom.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <fieldset>
+              <legend class="form-label">{{ form.sections.label }}</legend>
+              <div class="cases-pages">
+                {% for case in form.sections %}
+                  <label class="form-check">{{ case.tag }} <span class="form-check-label">{{ case.choice_label }}</span></label>
+                {% endfor %}
+              </div>
+              <div class="form-text">Le tableau de bord est toujours accessible.</div>
+            </fieldset>
+            <button type="submit" class="btn btn-mo w-100 mt-3"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer le rôle</button>
+          </div>
+        </form>
+      {% else %}
+        <form method="post" class="carte mb-3" novalidate autocomplete="off">
+          {% csrf_token %}
+          <div class="carte-entete">
+            <h2>{% if compte %}Modifier « {{ compte.username }} »{% else %}Nouveau compte{% endif %}</h2>
+            {% if compte %}<a href="{% url 'gestion:equipe' %}" class="small">Annuler</a>{% endif %}
+          </div>
+          <div class="carte-corps">
+            {% if form.non_field_errors %}<div class="alert alert-danger py-2 small">{{ form.non_field_errors.0 }}</div>{% endif %}
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.identifiant.id_for_label }}">{{ form.identifiant.label }}</label>
+                {{ form.identifiant }}
+                {% for e in form.identifiant.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.prenom.id_for_label }}">{{ form.prenom.label }}</label>
+                {{ form.prenom }}
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="{{ form.role.id_for_label }}">{{ form.role.label }}</label>
+                {{ form.role }}
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="{{ form.mot_de_passe.id_for_label }}">{{ form.mot_de_passe.label }}</label>
+                {{ form.mot_de_passe }}
+                {% if form.mot_de_passe.help_text %}<div class="form-text">{{ form.mot_de_passe.help_text }}</div>{% endif %}
+                {% for e in form.mot_de_passe.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  {{ form.actif }}
+                  <label class="form-check-label" for="{{ form.actif.id_for_label }}">{{ form.actif.label }}</label>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-mo w-100 mt-3"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer le compte</button>
+          </div>
+        </form>
+      {% endif %}
+      <div class="encadre-aide">
+        <strong>Désactiver ou supprimer ?</strong>
+        <p><i class="bi bi-pause-circle"></i> <b>Désactiver</b> bloque la connexion mais garde le compte : il peut être réactivé plus tard.</p>
+        <p class="mb-0"><i class="bi bi-trash3"></i> <b>Supprimer</b> efface le compte pour de bon. Les dépenses et arrivages qu'il a saisis restent enregistrés.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

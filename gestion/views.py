@@ -9,10 +9,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from boutique.models import Categorie, Commande, Produit
+from boutique.models import Categorie, Commande, Produit, TarifLivraison
+from boutique.whatsapp import fiche_livraison, messages_client
 
-from .decorators import gestionnaire_requis
-from .forms import CategorieForm, CommandeStatutForm, ConnexionForm, ProduitForm
+from .decorators import acces_requis, gestionnaire_requis
+from .forms import CategorieForm, CommandeStatutForm, ConnexionForm, ProduitForm, TarifLivraisonForm, CompteForm, RoleForm
 
 
 # ---------------------------------------------------------------- Connexion
@@ -76,7 +77,7 @@ def tableau_de_bord(request):
 
 # ---------------------------------------------------------------- Produits
 
-@gestionnaire_requis
+@acces_requis("produits")
 def produits_liste(request):
     produits = Produit.objects.select_related("categorie")
     q = request.GET.get("q", "").strip()
@@ -109,7 +110,7 @@ def produits_liste(request):
     return render(request, "gestion/produits_liste.html", contexte)
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def produit_ajouter(request):
     if not Categorie.objects.exists():
         messages.info(request, "Créez d'abord une catégorie (par exemple « Thés ») avant d'ajouter un produit.")
@@ -124,7 +125,7 @@ def produit_ajouter(request):
     return render(request, "gestion/produit_form.html", {"page": "produits", "form": form, "produit": None})
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def produit_modifier(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
     form = ProduitForm(request.POST or None, request.FILES or None, instance=produit)
@@ -135,7 +136,7 @@ def produit_modifier(request, pk):
     return render(request, "gestion/produit_form.html", {"page": "produits", "form": form, "produit": produit})
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def produit_supprimer(request, pk):
     produit = get_object_or_404(Produit, pk=pk)
     if request.method == "POST":
@@ -158,12 +159,14 @@ def produit_supprimer(request, pk):
     )
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 @require_POST
 def produit_basculer(request, pk, champ):
     """Active ou désactive rapidement « visible » ou « en stock » depuis la liste."""
     produit = get_object_or_404(Produit, pk=pk)
-    if champ in ("actif", "en_stock"):
+    if champ == "en_stock" and produit.stock is not None:
+        messages.info(request, f"Le stock de « {produit.nom} » est suivi en quantité : utilisez la page Stock.")
+    elif champ in ("actif", "en_stock"):
         setattr(produit, champ, not getattr(produit, champ))
         produit.save(update_fields=[champ, "date_modification"])
         libelle = "visible" if champ == "actif" else "en stock"
@@ -174,13 +177,13 @@ def produit_basculer(request, pk, champ):
 
 # ---------------------------------------------------------------- Catégories
 
-@gestionnaire_requis
+@acces_requis("produits")
 def categories_liste(request):
     categories = Categorie.objects.annotate(nb_produits=Count("produits"))
     return render(request, "gestion/categories_liste.html", {"page": "categories", "categories": categories})
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def categorie_ajouter(request):
     form = CategorieForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -190,7 +193,7 @@ def categorie_ajouter(request):
     return render(request, "gestion/categorie_form.html", {"page": "categories", "form": form, "categorie": None})
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def categorie_modifier(request, pk):
     categorie = get_object_or_404(Categorie, pk=pk)
     form = CategorieForm(request.POST or None, instance=categorie)
@@ -203,7 +206,7 @@ def categorie_modifier(request, pk):
     )
 
 
-@gestionnaire_requis
+@acces_requis("produits")
 def categorie_supprimer(request, pk):
     categorie = get_object_or_404(Categorie, pk=pk)
     if request.method == "POST":
@@ -233,7 +236,7 @@ def categorie_supprimer(request, pk):
 
 # ---------------------------------------------------------------- Commandes
 
-@gestionnaire_requis
+@acces_requis("commandes")
 def commandes_liste(request):
     commandes = Commande.objects.prefetch_related("lignes")
     statut = request.GET.get("statut", "")
@@ -244,7 +247,7 @@ def commandes_liste(request):
         commandes = commandes.filter(paiement_recu=False).exclude(statut=Commande.Statut.ANNULEE)
     if q:
         commandes = commandes.filter(
-            Q(numero__icontains=q) | Q(nom_client__icontains=q) | Q(telephone__icontains=q) | Q(ville__icontains=q)
+            Q(numero__icontains=q) | Q(nom_client__icontains=q) | Q(telephone__icontains=q) | Q(telephone_international__icontains="".join(ch for ch in q if ch.isdigit()) or q) | Q(ville__icontains=q)
         )
     compteurs = dict(Commande.objects.values_list("statut").annotate(n=Count("id")))
     nb_a_encaisser = Commande.objects.filter(paiement_recu=False).exclude(statut=Commande.Statut.ANNULEE).count()
@@ -261,7 +264,7 @@ def commandes_liste(request):
     )
 
 
-@gestionnaire_requis
+@acces_requis("commandes")
 @require_POST
 def commande_paiement(request, pk):
     """Marque rapidement une commande comme payée (ou non) depuis la liste."""
@@ -275,23 +278,175 @@ def commande_paiement(request, pk):
     return redirect(request.POST.get("suivant") or "gestion:commandes_liste")
 
 
-@gestionnaire_requis
+@acces_requis("commandes")
 def commande_detail(request, pk):
     commande = get_object_or_404(Commande.objects.prefetch_related("lignes__produit"), pk=pk)
     form = CommandeStatutForm(request.POST or None, instance=commande)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, f"Commande {commande.numero} : statut « {commande.get_statut_display()} ».")
+        commande.recalculer_total()  # les frais de livraison ont pu changer
+        messages.success(request, f"Commande {commande.numero} mise à jour.")
         return redirect("gestion:commande_detail", pk=commande.pk)
-    total = f"{commande.total:,}".replace(",", " ")
-    message_client = (
-        f"Bonjour {commande.nom_client}, ici {settings.BOUTIQUE_NOM}. "
-        f"Nous avons bien reçu votre commande {commande.numero} d'un montant de {total} FCFA, "
-        f"à régler à la livraison ({commande.get_mode_paiement_display().lower()}). "
-        f"Nous vous contactons pour convenir de la livraison à {commande.ville}."
-    )
     return render(
         request,
         "gestion/commande_detail.html",
-        {"page": "commandes", "commande": commande, "form": form, "message_client": message_client},
+        {
+            "page": "commandes",
+            "commande": commande,
+            "form": form,
+            "messages_client": messages_client(commande),
+            "fiche": fiche_livraison(commande),
+        },
     )
+
+
+# ---------------------------------------------------------------- Tarifs de livraison
+
+@acces_requis("livraison")
+def livraison_tarifs(request, pk=None):
+    """Liste des tarifs + formulaire d'ajout (ou de modification si pk est donné) sur la même page."""
+    tarif = get_object_or_404(TarifLivraison, pk=pk) if pk else None
+    form = TarifLivraisonForm(request.POST or None, instance=tarif)
+    if request.method == "POST" and form.is_valid():
+        t = form.save()
+        messages.success(request, f"Tarif « {t.ville or 'Autres villes'} » enregistré.")
+        return redirect("gestion:livraison_tarifs")
+    from boutique.pays import PAYS, codes_actifs
+
+    groupes = []
+    for code, infos in PAYS.items():
+        tarifs = TarifLivraison.objects.filter(pays=code)
+        if tarifs or code in codes_actifs():
+            groupes.append({"code": code, "nom": infos["nom"], "tarifs": tarifs, "livre": code in codes_actifs()})
+    return render(
+        request,
+        "gestion/livraison_tarifs.html",
+        {"page": "livraison", "form": form, "tarif": tarif, "groupes": groupes},
+    )
+
+
+@acces_requis("livraison")
+@require_POST
+def livraison_tarif_supprimer(request, pk):
+    tarif = get_object_or_404(TarifLivraison, pk=pk)
+    tarif.delete()
+    messages.success(request, f"Tarif « {tarif.ville or 'Autres villes'} » supprimé.")
+    return redirect("gestion:livraison_tarifs")
+
+
+# ---------------------------------------------------------------- Équipe et rôles
+
+def _contexte_equipe(request, **extra):
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    from .roles import ADMINISTRATEUR, SECTIONS, nom_role
+
+    noms = dict(SECTIONS)
+    comptes = [{"u": u, "role": nom_role(u)} for u in get_user_model().objects.filter(is_staff=True).order_by("-is_active", "username")]
+    roles = []
+    for g in Group.objects.annotate(nb=Count("user")).order_by("name"):
+        if g.name == ADMINISTRATEUR:
+            pages = ["Tout"]
+            # les superutilisateurs (createsuperuser) sont administrateurs même sans le groupe
+            g.nb += get_user_model().objects.filter(is_staff=True, is_superuser=True).exclude(groups=g).count()
+        else:
+            acces = getattr(g, "acces", None)
+            pages = [noms[c] for c in (acces.liste if acces else []) if c in noms]
+        roles.append({"g": g, "nb": g.nb, "pages": pages, "fixe": g.name == ADMINISTRATEUR})
+    return {"page": "equipe", "comptes": comptes, "roles": roles, **extra}
+
+
+@acces_requis("equipe")
+def equipe(request, pk=None):
+    from django.contrib.auth import get_user_model
+
+    compte = get_object_or_404(get_user_model(), pk=pk, is_staff=True) if pk else None
+    form = CompteForm(request.POST or None, compte=compte, moi=request.user)
+    if request.method == "POST" and form.is_valid():
+        c = form.enregistrer()
+        messages.success(request, f"Compte « {c.username} » enregistré.")
+        return redirect("gestion:equipe")
+    return render(request, "gestion/equipe.html", _contexte_equipe(request, form=form, compte=compte, mode="compte"))
+
+
+@acces_requis("equipe")
+@require_POST
+def compte_basculer(request, pk):
+    """Désactive ou réactive un compte (un compte désactivé ne peut plus se connecter)."""
+    from django.contrib.auth import get_user_model
+
+    compte = get_object_or_404(get_user_model(), pk=pk, is_staff=True)
+    if compte == request.user:
+        messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
+    else:
+        compte.is_active = not compte.is_active
+        compte.save(update_fields=["is_active"])
+        messages.success(request, f"Compte « {compte.username} » {'réactivé' if compte.is_active else 'désactivé'}.")
+    return redirect("gestion:equipe")
+
+
+@acces_requis("equipe")
+@require_POST
+def compte_supprimer(request, pk):
+    from django.contrib.auth import get_user_model
+
+    compte = get_object_or_404(get_user_model(), pk=pk, is_staff=True)
+    if compte == request.user:
+        messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
+    else:
+        nom = compte.username
+        compte.delete()  # ses dépenses et arrivages restent, sans nom d'auteur
+        messages.success(request, f"Compte « {nom} » supprimé.")
+    return redirect("gestion:equipe")
+
+
+@acces_requis("equipe")
+def role_form(request, pk=None):
+    from django.contrib.auth.models import Group
+
+    from .roles import ADMINISTRATEUR
+
+    role = get_object_or_404(Group, pk=pk) if pk else None
+    if role and role.name == ADMINISTRATEUR:
+        messages.info(request, "Le rôle Administrateur a toujours accès à tout : il ne se modifie pas.")
+        return redirect("gestion:equipe")
+    form = RoleForm(request.POST or None, role=role)
+    if request.method == "POST" and form.is_valid():
+        r = form.enregistrer()
+        messages.success(request, f"Rôle « {r.name} » enregistré.")
+        return redirect("gestion:equipe")
+    return render(request, "gestion/equipe.html", _contexte_equipe(request, form=form, role=role, mode="role"))
+
+
+@acces_requis("equipe")
+@require_POST
+def role_supprimer(request, pk):
+    from django.contrib.auth.models import Group
+
+    from .roles import ADMINISTRATEUR
+
+    role = get_object_or_404(Group, pk=pk)
+    if role.name == ADMINISTRATEUR:
+        messages.error(request, "Le rôle Administrateur ne peut pas être supprimé.")
+    elif role.user_set.exists():
+        messages.error(request, f"Le rôle « {role.name} » est encore attribué à des comptes : changez-leur de rôle d'abord.")
+    else:
+        nom = role.name
+        role.delete()
+        messages.success(request, f"Rôle « {nom} » supprimé.")
+    return redirect("gestion:equipe")
+
+
+@acces_requis("commandes")
+@require_POST
+def commande_supprimer(request, pk):
+    """Supprime une commande (commande de test, doublon…). Si elle était livrée, son stock est d'abord remis."""
+    commande = get_object_or_404(Commande, pk=pk)
+    numero = commande.numero
+    if commande.stock_deduit:
+        commande.statut = Commande.Statut.ANNULEE
+        commande.save()
+    commande.delete()
+    messages.success(request, f"Commande {numero} supprimée.")
+    return redirect("gestion:commandes_liste")

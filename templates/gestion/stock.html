@@ -1,0 +1,112 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Stock{% endblock %}
+{% block titre_page %}Stock{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Valeur du stock : <strong class="chiffre">{{ valeur_totale|fcfa }}</strong> au prix d'achat{% if nb_bas %} · <span class="text-danger">{{ nb_bas }} produit{{ nb_bas|pluralize }} à réapprovisionner</span>{% endif %}</p>{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 align-items-start">
+  <div class="col-lg-8">
+    <section class="carte mb-3">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th scope="col">Produit</th><th scope="col" class="text-end">En stock</th><th scope="col" class="text-end">Prix d'achat</th><th scope="col" class="text-end">Valeur</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            {% for l in lignes %}
+              <tr>
+                <td><a href="{% url 'gestion:produit_modifier' l.p.pk %}" class="fw-semibold text-decoration-none">{{ l.p.nom }}</a><div class="small text-body-secondary">{{ l.p.categorie.nom }}{% if not l.p.actif %} · caché{% endif %}</div></td>
+                <td class="text-end chiffre">
+                  {% if l.etat == "non_suivi" %}<span class="small text-body-secondary">non suivi</span>
+                  {% elif l.etat == "epuise" %}<span class="etiquette etiquette-alerte">Épuisé</span>
+                  {% elif l.etat == "bas" %}<span class="etiquette statut-nouvelle">{{ l.p.stock }} · bas</span>
+                  {% else %}<span class="fw-semibold">{{ l.p.stock }}</span>{% endif %}
+                </td>
+                <td class="text-end chiffre text-nowrap">{% if l.p.prix_achat is not None %}{{ l.p.prix_achat|fcfa }}{% else %}<span class="small text-body-secondary">—</span>{% endif %}</td>
+                <td class="text-end chiffre text-nowrap">{% if l.valeur %}{{ l.valeur|fcfa }}{% else %}<span class="text-body-secondary">—</span>{% endif %}</td>
+                <td class="text-end"><a href="?produit={{ l.p.pk }}#form-arrivage" class="btn btn-contour btn-sm text-nowrap" data-choisir-produit="{{ l.p.pk }}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Arrivage</a></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5" class="text-body-secondary">Aucun produit.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="carte">
+      <div class="carte-entete"><h2>Derniers arrivages</h2></div>
+      {% if arrivages %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead><tr><th scope="col">Date</th><th scope="col">Produit</th><th scope="col" class="text-end">Quantité</th><th scope="col" class="text-end">Montant</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              {% for a in arrivages %}
+                <tr>
+                  <td class="text-nowrap">{{ a.date|date:"d/m/Y" }}</td>
+                  <td>{{ a.produit.nom }}{% if a.fournisseur %}<div class="small text-body-secondary">{{ a.fournisseur }}</div>{% endif %}</td>
+                  <td class="text-end chiffre">{{ a.quantite }} × {{ a.prix_achat_unitaire|montant }}</td>
+                  <td class="text-end chiffre text-nowrap fw-semibold">{{ a.montant|fcfa }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{% url 'gestion:arrivage_supprimer' a.pk %}" onsubmit="return confirm('Supprimer cet arrivage ? La quantité sera retirée du stock et la dépense annulée.')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-contour btn-icone" aria-label="Supprimer l'arrivage"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="carte-corps small text-body-secondary">Aucun arrivage pour l'instant. Enregistrez votre premier achat de marchandise avec le formulaire.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="colonne-collante">
+      <form method="post" class="carte mb-3" id="form-arrivage" novalidate>
+        {% csrf_token %}
+        <div class="carte-entete"><h2>Nouvel arrivage</h2></div>
+        <div class="carte-corps">
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.produit.id_for_label }}">Produit</label>
+            {{ form.produit }}
+            {% for e in form.produit.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-5">
+              <label class="form-label" for="{{ form.quantite.id_for_label }}">Quantité</label>
+              {{ form.quantite }}
+              {% for e in form.quantite.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-7">
+              <label class="form-label" for="{{ form.prix_achat_unitaire.id_for_label }}">Prix d'achat / unité</label>
+              {{ form.prix_achat_unitaire }}
+              {% for e in form.prix_achat_unitaire.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="{{ form.date.id_for_label }}">Date</label>
+              {{ form.date }}
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="{{ form.fournisseur.id_for_label }}">Fournisseur</label>
+              {{ form.fournisseur }}
+            </div>
+          </div>
+          <div class="resume-prix mb-3" id="total-arrivage">Total : —</div>
+          <button type="submit" class="btn btn-mo w-100"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer l'arrivage</button>
+        </div>
+      </form>
+      <div class="encadre-aide">
+        <strong>Ce qui se passe automatiquement</strong>
+        <p>Un arrivage ajoute la quantité au stock, met à jour le prix d'achat du produit et crée la dépense « Achat de marchandise ».</p>
+        <p class="mb-0">Quand une commande passe « Livrée », ses articles sont retirés du stock. À 0, le produit s'affiche « épuisé » sur le site. Si la commande est annulée ensuite, le stock est remis.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{{ prix_achat|json_script:"prix-achat" }}
+{% endblock %}

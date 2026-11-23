@@ -1,0 +1,70 @@
+{% extends "boutique/base.html" %}
+{% load gestion_extras %}
+{% block titre %}{{ produit.nom }} — {{ BOUTIQUE_NOM }}{% endblock %}
+{% block description %}{{ produit.nom }} à {{ produit.prix_actuel|fcfa }}. {{ produit.description|truncatechars:140 }}{% endblock %}
+{% block og_titre %}{{ produit.nom }} — {{ produit.prix_actuel|fcfa }}{% endblock %}
+{% block og_image %}{% if produit.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ produit.image.url }}">{% endif %}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <div class="conteneur">
+    <nav class="fil-ariane" aria-label="Fil d'Ariane">
+      <a href="{% url 'boutique:accueil' %}">Accueil</a> /
+      <a href="{% url 'boutique:categorie' produit.categorie.slug %}">{{ produit.categorie.nom }}</a> /
+      <span>{{ produit.nom }}</span>
+    </nav>
+    <div class="row g-4 g-lg-5 fiche">
+      <div class="col-md-6">
+        <div class="fiche-visuel">
+          {% if produit.image %}<img src="{{ produit.image.url }}" alt="{{ produit.nom }}">
+          {% else %}<span class="sans-photo"><span class="monogramme" aria-hidden="true"><span class="o">O</span><span class="m">M</span></span></span>{% endif %}
+          {% if produit.en_promo and produit.en_stock %}<span class="badge-promo chiffre">−{{ produit.pourcentage_remise }} %</span>{% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="surtitre">{{ produit.categorie.nom }}</div>
+        <h1>{{ produit.nom }}</h1>
+        <div class="ligne-prix prix">
+          <span class="prix-actuel{% if produit.en_promo %} promo{% endif %}">{{ produit.prix_actuel|fcfa }}</span>
+          {% if produit.en_promo %}<span class="prix-barre">{{ produit.prix|fcfa }}</span>{% endif %}
+        </div>
+        <div class="mt-2">
+          {% if produit.en_stock %}<span class="dispo-ok"><i class="bi bi-check-circle"></i> Disponible</span>
+          {% else %}<span class="dispo-non"><i class="bi bi-clock-history"></i> Épuisé pour le moment</span>{% endif %}
+        </div>
+        {% if produit.description %}<p class="description">{{ produit.description }}</p>{% endif %}
+
+        {% if produit.en_stock %}
+          <div class="d-flex gap-2 flex-wrap align-items-center mt-3">
+            <div class="selecteur-qte">
+              <button type="button" data-qte-pas="-1" aria-label="Retirer un">−</button>
+              <input type="number" id="qte-produit" min="1" max="99" value="1" aria-label="Quantité">
+              <button type="button" data-qte-pas="1" aria-label="Ajouter un">+</button>
+            </div>
+            <button type="button" class="btn btn-contour px-3 flex-grow-1" data-ajouter="{{ produit.pk }}" data-nom="{{ produit.nom }}" data-quantite-depuis="#qte-produit">
+              <i class="bi bi-bag-plus"></i> Ajouter au panier
+            </button>
+          </div>
+          <button type="button" class="btn btn-vin btn-lg fs-6 w-100 mt-2" data-ajouter="{{ produit.pk }}" data-nom="{{ produit.nom }}" data-quantite-depuis="#qte-produit" data-aller-panier="{% url 'boutique:panier' %}">
+            <i class="bi bi-lightning-charge"></i> Commander maintenant
+          </button>
+        {% endif %}
+
+        <ul class="garanties">
+          <li><i class="bi bi-cash-coin"></i>Paiement à la livraison : espèces ou Mobile Money</li>
+          <li><i class="bi bi-telephone"></i>Nous vous appelons pour confirmer la commande</li>
+          <li><i class="bi bi-truck"></i>Livraison à domicile</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if similaires %}
+<section class="section pt-0">
+  <div class="conteneur">
+    <div class="section-titre"><div><div class="surtitre">Dans la même catégorie</div><h2>Vous aimerez aussi</h2></div></div>
+    <div class="grille-produits">{% for p in similaires %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

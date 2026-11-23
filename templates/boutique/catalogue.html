@@ -1,0 +1,56 @@
+{% extends "boutique/base.html" %}
+{% load gestion_extras %}
+{% block titre %}{% if categorie %}{{ categorie.nom }}{% else %}Tous les produits{% endif %} — {{ BOUTIQUE_NOM }}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <div class="conteneur">
+    <div class="section-titre">
+      <div>
+        <div class="surtitre">Catalogue</div>
+        <h1 class="h2 mb-0">{% if categorie %}{{ categorie.nom }}{% elif q %}Résultats pour « {{ q }} »{% else %}Tous les produits{% endif %}</h1>
+        {% if categorie.description %}<p>{{ categorie.description }}</p>{% endif %}
+      </div>
+      <span class="text-body-secondary small chiffre">{{ produits.paginator.count }} produit{{ produits.paginator.count|pluralize }}</span>
+    </div>
+
+    <div class="puces-categories mb-3">
+      <a href="{% url 'boutique:catalogue' %}" class="{% if not categorie %}active{% endif %}">Tout</a>
+      {% for c in categories %}<a href="{% url 'boutique:categorie' c.slug %}" class="{% if categorie and categorie.pk == c.pk %}active{% endif %}">{{ c.nom }} <span class="n chiffre">{{ c.nb }}</span></a>{% endfor %}
+    </div>
+
+    <form method="get" class="barre-catalogue" role="search">
+      <div class="recherche">
+        <i class="bi bi-search"></i>
+        <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Rechercher un produit…" aria-label="Rechercher un produit">
+      </div>
+      <select name="tri" class="form-select w-auto" aria-label="Trier" onchange="this.form.submit()">
+        <option value="">Nouveautés</option>
+        <option value="prix_croissant" {% if tri == "prix_croissant" %}selected{% endif %}>Prix croissant</option>
+        <option value="prix_decroissant" {% if tri == "prix_decroissant" %}selected{% endif %}>Prix décroissant</option>
+        <option value="promo" {% if tri == "promo" %}selected{% endif %}>Promotions d'abord</option>
+      </select>
+      <button class="btn btn-vin px-3" type="submit">Rechercher</button>
+    </form>
+
+    {% if produits %}
+      <div class="grille-produits">{% for p in produits %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
+      {% if produits.has_other_pages %}
+        <nav class="mt-4" aria-label="Pages">
+          <ul class="pagination justify-content-center">
+            {% if produits.has_previous %}<li class="page-item"><a class="page-link" href="{% url_avec page=produits.previous_page_number %}" aria-label="Page précédente"><i class="bi bi-chevron-left"></i></a></li>{% endif %}
+            <li class="page-item active"><span class="page-link chiffre">{{ produits.number }} / {{ produits.paginator.num_pages }}</span></li>
+            {% if produits.has_next %}<li class="page-item"><a class="page-link" href="{% url_avec page=produits.next_page_number %}" aria-label="Page suivante"><i class="bi bi-chevron-right"></i></a></li>{% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    {% else %}
+      <div class="vide">
+        <i class="bi bi-search"></i>
+        <h2>Aucun produit trouvé</h2>
+        <p>{% if q %}Essayez un autre mot.{% else %}Cette catégorie sera bientôt remplie.{% endif %}</p>
+        <a href="{% url 'boutique:catalogue' %}" class="btn btn-contour">Voir tous les produits</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

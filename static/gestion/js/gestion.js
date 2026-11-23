@@ -74,6 +74,7 @@
   const prix = document.getElementById("id_prix");
   const promo = document.getElementById("id_prix_promo");
   const resume = document.getElementById("resume-prix");
+  const achat = document.getElementById("id_prix_achat");
   function formater(n) {
     return Math.round(n).toLocaleString("fr-FR").replace(/ | /g, " ") + " FCFA";
   }
@@ -90,7 +91,16 @@
     } else {
       resume.innerHTML = "Affiché sur le site : <strong>" + formater(p) + "</strong>";
     }
+    const a = achat ? parseInt(achat.value, 10) : NaN;
+    if (!isNaN(a)) {
+      const vente = !isNaN(pp) && pp < p ? pp : p;
+      const marge = vente - a;
+      resume.innerHTML += '<br><span class="' + (marge < 0 ? "text-danger" : "") + '">Bénéfice par article : <strong>' +
+        (marge < 0 ? "− " : "") + formater(Math.abs(marge)) + "</strong>" +
+        (vente ? " (" + Math.round((marge * 100) / vente) + " % du prix de vente)" : "") + "</span>";
+    }
   }
+  achat && achat.addEventListener("input", majResume);
   prix && prix.addEventListener("input", majResume);
   promo && promo.addEventListener("input", majResume);
   majResume();
@@ -107,4 +117,28 @@
       });
     });
   });
+
+  // Page Stock : prix d'achat proposé selon le produit, total de l'arrivage en direct
+  const formArrivage = document.getElementById("form-arrivage");
+  if (formArrivage) {
+    let prixConnus = {};
+    try { prixConnus = JSON.parse(document.getElementById("prix-achat").textContent); } catch (e) {}
+    const produit = formArrivage.querySelector("[name=produit]");
+    const qte = formArrivage.querySelector("[name=quantite]");
+    const pu = formArrivage.querySelector("[name=prix_achat_unitaire]");
+    const total = document.getElementById("total-arrivage");
+    const majTotal = function () {
+      const q = parseInt(qte.value, 10), p = parseInt(pu.value, 10);
+      total.innerHTML = !isNaN(q) && !isNaN(p) ? "Total de l'achat : <strong>" + formater(q * p) + "</strong>" : "Total : —";
+    };
+    const proposerPrix = function () {
+      if (prixConnus[produit.value] !== undefined && !pu.value) pu.value = prixConnus[produit.value];
+      majTotal();
+    };
+    produit.addEventListener("change", function () { pu.value = ""; proposerPrix(); });
+    qte.addEventListener("input", majTotal);
+    pu.addEventListener("input", majTotal);
+    proposerPrix();
+    if (location.search.indexOf("produit=") >= 0) qte.focus();
+  }
 })();

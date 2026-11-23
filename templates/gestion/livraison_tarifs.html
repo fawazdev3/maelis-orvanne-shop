@@ -1,0 +1,80 @@
+{% extends "gestion/base.html" %}
+{% load gestion_extras %}
+{% block titre %}Livraison{% endblock %}
+{% block titre_page %}Tarifs de livraison{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Ajoutés automatiquement au total du client selon la ville qu'il indique.</p>{% endblock %}
+
+{% block contenu %}
+<div class="row g-3 align-items-start">
+  <div class="col-lg-7">
+    {% for g in groupes %}
+      <section class="carte {% if not forloop.last %}mb-3{% endif %}">
+        <div class="carte-entete">
+          <h2>{{ g.nom }}</h2>
+          {% if not g.livre %}<span class="etiquette etiquette-off">pas encore livré</span>{% endif %}
+        </div>
+        {% if g.tarifs %}
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead><tr><th scope="col">Ville</th><th scope="col">Frais facturés</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+              <tbody>
+                {% for t in g.tarifs %}
+                  <tr{% if tarif and tarif.pk == t.pk %} class="ligne-active"{% endif %}>
+                    <td class="fw-semibold">{% if t.ville %}{{ t.ville }}{% else %}<span class="text-body-secondary fw-normal">Toutes les autres villes</span>{% endif %}</td>
+                    <td class="chiffre">{% if t.frais is None %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif t.frais == 0 %}Offerte{% else %}{{ t.frais|fcfa }}{% endif %}</td>
+                    <td class="text-end text-nowrap">
+                      <a href="{% url 'gestion:livraison_tarif_modifier' t.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier le tarif {{ t }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                      <form method="post" action="{% url 'gestion:livraison_tarif_supprimer' t.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-contour btn-icone" aria-label="Supprimer le tarif {{ t }}"><i class="bi bi-trash3" aria-hidden="true"></i></button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="carte-corps small text-body-secondary">Aucun tarif : les frais seront « à confirmer » pour toutes les villes.</div>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+
+  <div class="col-lg-5">
+    <div class="colonne-collante">
+      <form method="post" class="carte mb-3" novalidate>
+        {% csrf_token %}
+        <div class="carte-entete">
+          <h2>{% if tarif %}Modifier « {{ tarif.ville|default:"Autres villes" }} »{% else %}Ajouter un tarif{% endif %}</h2>
+          {% if tarif %}<a href="{% url 'gestion:livraison_tarifs' %}" class="small">Annuler</a>{% endif %}
+        </div>
+        <div class="carte-corps">
+          <div class="row g-3">
+            <div class="col-5">
+              <label class="form-label" for="{{ form.pays.id_for_label }}">Pays</label>
+              {{ form.pays }}
+            </div>
+            <div class="col-7">
+              <label class="form-label" for="{{ form.ville.id_for_label }}">Ville</label>
+              {{ form.ville }}
+              {% for e in form.ville.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.frais.id_for_label }}">Frais facturés au client</label>
+              <div class="input-group">{{ form.frais }}<span class="input-group-text">FCFA</span></div>
+              <div class="form-text">Vide = à confirmer au cas par cas. 0 = livraison offerte.</div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-mo w-100 mt-3"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer</button>
+        </div>
+      </form>
+      <div class="encadre-aide">
+        <strong>Comment c'est calculé</strong>
+        <p>Si la ville du client a son tarif, il est ajouté au total. Sinon, c'est le tarif « toutes les autres villes ». S'il est vide, le client voit « frais d'envoi à confirmer » et vous indiquez le montant réel dans la commande, une fois le prix de l'envoi connu.</p>
+        <p class="mb-0">L'orthographe est tolérée : « Lomé », « lome » et « LOME » donnent le même tarif.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

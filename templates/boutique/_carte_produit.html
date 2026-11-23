@@ -1,0 +1,21 @@
+{% load gestion_extras %}<article class="carte-produit">
+  <a class="visuel" href="{% url 'boutique:produit' p.slug %}" tabindex="-1" aria-hidden="true">
+    {% if p.image %}<img src="{{ p.image.url }}" alt="" loading="lazy">
+    {% else %}<span class="sans-photo"><span class="monogramme"><span class="o">O</span><span class="m">M</span></span></span>{% endif %}
+    {% if not p.en_stock %}<span class="badge-rupture">Épuisé</span>
+    {% elif p.en_promo %}<span class="badge-promo chiffre">−{{ p.pourcentage_remise }} %</span>{% endif %}
+  </a>
+  <div class="infos">
+    <span class="categorie">{{ p.categorie.nom }}</span>
+    <a class="nom" href="{% url 'boutique:produit' p.slug %}">{{ p.nom }}</a>
+    <div class="ligne-prix prix">
+      <span class="prix-actuel{% if p.en_promo %} promo{% endif %}">{{ p.prix_actuel|fcfa }}</span>
+      {% if p.en_promo %}<span class="prix-barre">{{ p.prix|fcfa }}</span>{% endif %}
+    </div>
+    {% if p.en_stock %}
+      <button type="button" class="btn btn-vin" data-ajouter="{{ p.pk }}" data-nom="{{ p.nom }}"><i class="bi bi-bag-plus"></i> Ajouter</button>
+    {% else %}
+      <button type="button" class="btn btn-contour" disabled>Bientôt de retour</button>
+    {% endif %}
+  </div>
+</article>

@@ -1,0 +1,142 @@
+{% extends "boutique/base.html" %}
+{% block titre %}Ma commande — {{ BOUTIQUE_NOM }}{% endblock %}
+{% block contenu %}
+<section class="section commande" id="zone-panier" data-api="{% url 'boutique:api_produits' %}">
+  <div class="commande-cadre">
+    <h1 class="commande-titre">Ma commande</h1>
+
+    <div id="panier-vide" hidden>
+      <div class="vide">
+        <i class="bi bi-bag"></i>
+        <h2>Votre panier est vide</h2>
+        <p>Parcourez nos produits et ajoutez ceux qui vous plaisent.</p>
+        <a href="{% url 'boutique:catalogue' %}" class="btn btn-vin px-4">Voir les produits</a>
+      </div>
+    </div>
+
+    {% if not reglages.commandes_ouvertes %}
+      <div class="alert-info-b text-center mb-3"><i class="bi bi-pause-circle me-1"></i> {{ reglages.message_commandes_fermees }}</div>
+    {% endif %}
+    <div id="panier-plein">
+      <ol class="progression" aria-label="Étapes de la commande">
+        <li data-aller="1" class="actif"><span class="trait"></span><span class="nom">Panier</span></li>
+        <li data-aller="2"><span class="trait"></span><span class="nom">Livraison</span></li>
+        <li data-aller="3"><span class="trait"></span><span class="nom">Confirmation</span></li>
+      </ol>
+
+      <form method="post" action="{% url 'boutique:commander' %}" id="form-commande" novalidate>
+        {% csrf_token %}
+        {{ form.panier }}
+        <div class="champ-piege" aria-hidden="true"><label for="{{ form.site_web.id_for_label }}">Ne pas remplir</label>{{ form.site_web }}</div>
+        {{ pays_infos|json_script:"pays-infos" }}
+        {{ tarifs|json_script:"tarifs-livraison" }}
+        {% if form.non_field_errors or form.panier.errors %}
+          <div class="alert-erreur mb-3">{% for e in form.non_field_errors %}{{ e }} {% endfor %}{{ form.panier.errors.0 }}</div>
+        {% endif %}
+
+        <!-- Étape 1 : panier -->
+        <div class="pas" data-pas="1">
+          <div class="feuille">
+            <div id="lignes-panier"><div class="p-4 text-center text-body-secondary"><span class="spinner-border spinner-border-sm"></span> Chargement…</div></div>
+            <div id="avert-indispo" class="note-discrete" hidden>Un article épuisé ne sera pas commandé.</div>
+            <div class="ligne-total"><span>Total des articles <small class="d-block text-body-secondary fw-normal">Livraison calculée selon votre ville</small></span><strong class="prix" data-total-panier>—</strong></div>
+          </div>
+          <div class="pied-pas">
+            <a href="{% url 'boutique:catalogue' %}" class="lien-retour">Continuer mes achats</a>
+            <button type="button" class="btn btn-vin px-4" data-suivant="2" data-bouton-commander disabled>Suivant <i class="bi bi-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Étape 2 : livraison -->
+        <div class="pas" data-pas="2" hidden>
+          <div class="feuille corps-feuille">
+            {% if form.un_seul_pays %}{{ form.pays }}{% else %}
+              <div class="champ mb-3">
+                <label class="form-label" for="{{ form.pays.id_for_label }}">{{ form.pays.label }}</label>
+                {{ form.pays }}
+              </div>
+            {% endif %}
+            <div class="champ mb-3">
+              <label class="form-label" for="{{ form.ville_liste.id_for_label }}">Ville</label>
+              <select name="ville_liste" id="{{ form.ville_liste.id_for_label }}" class="form-select">
+                <option value="">Choisissez votre ville</option>
+                {% for v in villes %}<option value="{{ v }}"{% if v == ville_choisie %} selected{% endif %}>{{ v }}</option>{% endfor %}
+                <option value="__autre__"{% if ville_choisie == "__autre__" %} selected{% endif %}>Autre ville…</option>
+              </select>
+              {% for e in form.ville_liste.errors %}<div class="erreur-champ">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="champ mb-3" id="bloc-autre-ville"{% if ville_choisie != "__autre__" %} hidden{% endif %}>
+              <label class="form-label" for="{{ form.ville.id_for_label }}">{{ form.ville.label }}</label>
+              {{ form.ville }}
+              {% for e in form.ville.errors %}<div class="erreur-champ">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="champ mb-3">
+              <label class="form-label" for="{{ form.nom_client.id_for_label }}">{{ form.nom_client.label }}</label>
+              {{ form.nom_client }}
+              {% for e in form.nom_client.errors %}<div class="erreur-champ">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="champ">
+              <label class="form-label" for="{{ form.telephone.id_for_label }}">{{ form.telephone.label }}</label>
+              <div class="input-group groupe-tel">
+                <span class="input-group-text chiffre" id="prefixe-tel">+{{ indicatif }}</span>
+                {{ form.telephone }}
+              </div>
+              {% for e in form.telephone.errors %}<div class="erreur-champ">{{ e }}</div>{% endfor %}
+            </div>
+            <p class="aide-position"><i class="bi bi-geo-alt"></i> Pas besoin d'écrire votre quartier : sur WhatsApp, envoyez-nous simplement votre position.</p>
+          </div>
+          <div class="pied-pas">
+            <button type="button" class="lien-retour" data-suivant="1"><i class="bi bi-arrow-left"></i> Retour</button>
+            <button type="button" class="btn btn-vin px-4" data-suivant="3">Suivant <i class="bi bi-arrow-right"></i></button>
+          </div>
+        </div>
+
+        <!-- Étape 3 : confirmation -->
+        <div class="pas" data-pas="3" hidden>
+          <div class="feuille corps-feuille">
+            <div class="bloc-recap">
+              <div class="d-flex justify-content-between align-items-baseline">
+                <h2>Livraison</h2>
+                <button type="button" class="lien-modifier" data-suivant="2">Modifier</button>
+              </div>
+              <p class="mb-0" id="resume-livraison"></p>
+            </div>
+            <div class="bloc-recap">
+              <div class="d-flex justify-content-between align-items-baseline">
+                <h2>Articles</h2>
+                <button type="button" class="lien-modifier" data-suivant="1">Modifier</button>
+              </div>
+              <ul class="recap-articles" id="recap-lignes"></ul>
+            </div>
+            <div class="bloc-recap">
+              <h2>Paiement à la livraison</h2>
+              <div class="choix-paiement">
+                {% for radio in form.mode_paiement %}
+                  <label for="{{ radio.id_for_label }}">{{ radio.tag }} {{ radio.choice_label }}</label>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="champ">
+              <label class="form-label" for="{{ form.note.id_for_label }}">{{ form.note.label }}</label>
+              {{ form.note }}
+            </div>
+            <div class="totaux">
+              <div><span>Articles</span><span class="prix" data-total-panier>—</span></div>
+              <div><span>Livraison</span><span class="prix" id="frais-livraison">—</span></div>
+              <div class="final"><span>Total à payer à la réception</span><strong class="prix" id="total-final">—</strong></div>
+              <p class="note-envoi" id="note-envoi" hidden>Les frais d'envoi vers votre ville vous seront confirmés sur WhatsApp avant l'expédition.</p>
+            </div>
+          </div>
+          <p class="note-discrete text-center mt-3 mb-0">
+            {% if whatsapp_actif %}WhatsApp va s'ouvrir avec votre commande déjà écrite : il suffira d'appuyer sur « Envoyer ».{% else %}Nous vous contactons pour confirmer la livraison.{% endif %}
+          </p>
+          <div class="pied-pas">
+            <button type="button" class="lien-retour" data-suivant="2"><i class="bi bi-arrow-left"></i> Retour</button>
+            <button type="submit" class="btn btn-vin px-4" data-bouton-valider{% if not reglages.commandes_ouvertes %} disabled{% endif %}>{% if whatsapp_actif %}<i class="bi bi-whatsapp"></i> {% endif %}Valider la commande</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

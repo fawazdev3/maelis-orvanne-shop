@@ -26,12 +26,15 @@ def charger_env(chemin):
 
 charger_env(BASE_DIR / ".env")
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "dev-uniquement-a-changer-en-production-3f9a8c1e7b2d",
-)
+CLE_DE_DEVELOPPEMENT = "dev-uniquement-a-changer-en-production-3f9a8c1e7b2d"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", CLE_DE_DEVELOPPEMENT)
 
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
+
+if not DEBUG and SECRET_KEY in ("", CLE_DE_DEVELOPPEMENT):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("En production, définissez DJANGO_SECRET_KEY (une longue clé secrète unique).")
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -64,6 +67,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "boutique.middleware.MaintenanceMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -145,3 +149,27 @@ BOUTIQUE_DEVISE = "FCFA"
 # Numéro WhatsApp qui reçoit les commandes, au format international sans "+" ni espaces.
 # Exemple pour le Togo : "22890000000". À remplir plus tard.
 BOUTIQUE_WHATSAPP = os.environ.get("BOUTIQUE_WHATSAPP", "")
+# Pays où la boutique livre (le premier est proposé par défaut) : TG = Togo, BJ = Bénin, GH = Ghana
+BOUTIQUE_PAYS = [c for c in os.environ.get("BOUTIQUE_PAYS", "TG").split(",") if c.strip()]
+
+
+# ---------------------------------------------------------------- Sécurité
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 60 * 60 * 12  # une session du back-office dure 12 h
+
+if not DEBUG:
+    # En ligne, tout passe en HTTPS
+    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "1") == "1"
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "2592000"))  # 30 jours
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    if os.environ.get("DJANGO_DERRIERE_PROXY") == "1":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Limites anti-abus
+LIMITE_CONNEXION = (5, 15 * 60)  # 5 essais ratés → 15 minutes de blocage
+LIMITE_COMMANDES = (5, 10 * 60)  # 5 commandes max par adresse IP en 10 minutes
