@@ -374,3 +374,25 @@ class BandeauHorairesTests(TestCase):
         r = self.client.get("/")
         self.assertContains(r, "bandeau-horaires")
         self.assertContains(r, "data-cible=")
+
+
+class PaginationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.cat = Categorie.objects.create(nom="Thés")
+        for i in range(30):
+            Produit.objects.create(categorie=cls.cat, nom=f"Thé {i:02d}", prix=1000 + i)
+
+    def test_pages_et_navigation(self):
+        r = self.client.get(reverse("boutique:catalogue"))
+        self.assertEqual(len(r.context["produits"]), 12)
+        self.assertContains(r, "Produits 1 à 12 sur 30")
+        self.assertContains(r, 'rel="next"')
+        r = self.client.get(reverse("boutique:catalogue"), {"page": 3})
+        self.assertEqual(len(r.context["produits"]), 6)
+        self.assertContains(r, 'rel="prev"')
+        self.assertNotContains(r, 'rel="next"')
+
+    def test_filtres_gardes_sur_les_pages(self):
+        r = self.client.get(reverse("boutique:categorie", args=[self.cat.slug]), {"tri": "prix_croissant"})
+        self.assertContains(r, "tri=prix_croissant&amp;page=2")

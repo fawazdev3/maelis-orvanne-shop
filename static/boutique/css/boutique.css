@@ -229,6 +229,21 @@ h1, h2, h3, .serif {
 .vide > i { font-size: 2rem; color: var(--b-or-texte); display: block; margin-bottom: .5rem; }
 .vide h2, .vide h3 { font-size: 1.25rem; color: var(--b-texte); }
 
+.pages-catalogue { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-top: 2rem; flex-wrap: wrap; }
+.pages-catalogue .btn { min-height: 42px; display: inline-flex; align-items: center; gap: .4rem; padding-inline: 1rem; }
+.pages-catalogue .numeros { list-style: none; display: flex; gap: .3rem; margin: 0; padding: 0; }
+.pages-catalogue .numeros a, .pages-catalogue .numeros .actuelle, .pages-catalogue .ellipse {
+  min-width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: .5rem; font-weight: 500;
+}
+.pages-catalogue .numeros a { color: var(--b-texte); text-decoration: none; border: 1px solid var(--b-bord); background: var(--b-surface); }
+.pages-catalogue .numeros a:hover { border-color: var(--b-vin); color: var(--b-vin); }
+.pages-catalogue .numeros .actuelle { background: var(--b-vin); color: #fff; }
+.pages-catalogue .ellipse { min-width: 24px; color: var(--b-texte-doux); }
+@media (max-width: 575.98px) {
+  .pages-catalogue { gap: .5rem; }
+  .pages-catalogue .numeros { order: -1; width: 100%; justify-content: center; }
+  .pages-catalogue .btn { flex: 1; justify-content: center; }
+}
 .pagination .page-link { color: var(--b-texte); border-color: var(--b-bord); min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
 .pagination .active .page-link { background: var(--b-vin); border-color: var(--b-vin); color: #fff; }
 

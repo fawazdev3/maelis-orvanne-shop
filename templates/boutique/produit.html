@@ -62,7 +62,10 @@
 {% if similaires %}
 <section class="section pt-0">
   <div class="conteneur">
-    <div class="section-titre"><div><div class="surtitre">Dans la même catégorie</div><h2>Vous aimerez aussi</h2></div></div>
+    <div class="section-titre">
+      <div><div class="surtitre">Dans la même catégorie</div><h2>Vous aimerez aussi</h2></div>
+      <a href="{% url 'boutique:categorie' produit.categorie.slug %}" class="btn btn-contour btn-sm">Toute la catégorie {{ produit.categorie.nom }} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+    </div>
     <div class="grille-produits">{% for p in similaires %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
   </div>
 </section>

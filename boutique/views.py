@@ -16,6 +16,9 @@ from .pays import PAYS
 from .whatsapp import lien_whatsapp
 
 
+PRODUITS_PAR_PAGE = 12  # 3 rangées de 4 sur ordinateur, 6 rangées de 2 sur téléphone
+
+
 def produits_en_ligne():
     """Produits visibles sur le site : actifs et dans une catégorie visible."""
     return Produit.objects.filter(actif=True, categorie__active=True).select_related("categorie")
@@ -64,9 +67,10 @@ def catalogue(request, slug=None):
     }
     produits = produits.order_by(F("en_stock").desc(), *ordres.get(tri, ["-mis_en_avant", "-date_creation"]))
 
-    page = Paginator(produits, 24).get_page(request.GET.get("page"))
+    page = Paginator(produits, PRODUITS_PAR_PAGE).get_page(request.GET.get("page"))
     contexte = {
         "produits": page,
+        "numeros_pages": page.paginator.get_elided_page_range(page.number, on_each_side=1, on_ends=1),
         "categorie": categorie,
         "categories": categories_menu(),
         "q": q,

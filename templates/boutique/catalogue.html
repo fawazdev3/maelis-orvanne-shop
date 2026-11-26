@@ -35,13 +35,22 @@
     {% if produits %}
       <div class="grille-produits">{% for p in produits %}{% include "boutique/_carte_produit.html" %}{% endfor %}</div>
       {% if produits.has_other_pages %}
-        <nav class="mt-4" aria-label="Pages">
-          <ul class="pagination justify-content-center">
-            {% if produits.has_previous %}<li class="page-item"><a class="page-link" href="{% url_avec page=produits.previous_page_number %}" aria-label="Page précédente"><i class="bi bi-chevron-left"></i></a></li>{% endif %}
-            <li class="page-item active"><span class="page-link chiffre">{{ produits.number }} / {{ produits.paginator.num_pages }}</span></li>
-            {% if produits.has_next %}<li class="page-item"><a class="page-link" href="{% url_avec page=produits.next_page_number %}" aria-label="Page suivante"><i class="bi bi-chevron-right"></i></a></li>{% endif %}
+        <nav class="pages-catalogue" aria-label="Pages">
+          {% if produits.has_previous %}
+            <a class="btn btn-contour" href="{% url_avec page=produits.previous_page_number %}" rel="prev"><i class="bi bi-arrow-left" aria-hidden="true"></i> Précédent</a>
+          {% else %}<span class="btn btn-contour disabled" aria-disabled="true"><i class="bi bi-arrow-left" aria-hidden="true"></i> Précédent</span>{% endif %}
+          <ul class="numeros">
+            {% for n in numeros_pages %}
+              {% if n == produits.paginator.ELLIPSIS %}<li class="ellipse">…</li>
+              {% elif n == produits.number %}<li><span class="actuelle chiffre" aria-current="page">{{ n }}</span></li>
+              {% else %}<li><a class="chiffre" href="{% url_avec page=n %}" aria-label="Page {{ n }}">{{ n }}</a></li>{% endif %}
+            {% endfor %}
           </ul>
+          {% if produits.has_next %}
+            <a class="btn btn-vin" href="{% url_avec page=produits.next_page_number %}" rel="next">Suivant <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+          {% else %}<span class="btn btn-contour disabled" aria-disabled="true">Suivant <i class="bi bi-arrow-right" aria-hidden="true"></i></span>{% endif %}
         </nav>
+        <p class="text-center small text-body-secondary mt-2 mb-0 chiffre">Produits {{ produits.start_index }} à {{ produits.end_index }} sur {{ produits.paginator.count }}</p>
       {% endif %}
     {% else %}
       <div class="vide">
