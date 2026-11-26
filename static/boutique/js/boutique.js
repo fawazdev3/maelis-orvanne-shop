@@ -388,29 +388,47 @@
 })();
 
 
-// Bandeau des horaires : compte à rebours jusqu'à la fermeture (ou la réouverture)
+// Bandeau des horaires : compte à rebours seconde par seconde jusqu'à la fermeture (ou la réouverture)
 (function () {
   var bandeau = document.querySelector(".bandeau-horaires[data-cible]");
   if (!bandeau) return;
-  var reste = bandeau.querySelector("[data-reste]");
+  var chrono = bandeau.querySelector("[data-reste]");
   var cible = new Date(bandeau.dataset.cible).getTime();
   var ouvert = bandeau.dataset.ouvert === "1";
-  function format(s) {
-    var j = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
-    if (j) return j + " j " + h + " h";
-    if (h) return h + " h " + String(m).padStart(2, "0") + " min";
-    return m + " min " + String(sec).padStart(2, "0") + " s";
+  var cases = {};
+
+  function deux(n) { return String(n).padStart(2, "0"); }
+  function construire(avecJours) {
+    chrono.innerHTML = "";
+    (avecJours ? ["j", "h", "min", "s"] : ["h", "min", "s"]).forEach(function (u) {
+      var c = document.createElement("span");
+      c.className = "case";
+      c.innerHTML = '<span class="n">00</span><span class="u">' + u + "</span>";
+      chrono.appendChild(c);
+      cases[u] = c.querySelector(".n");
+    });
+    chrono.dataset.jours = avecJours ? "1" : "0";
+  }
+  function poser(u, valeur) {
+    var el = cases[u];
+    if (el && el.textContent !== valeur) {
+      el.textContent = valeur;
+      el.classList.remove("bascule"); void el.offsetWidth; el.classList.add("bascule");
+    }
   }
   function maj() {
-    var s = Math.round((cible - Date.now()) / 1000);
-    if (s <= 0) { reste.textContent = "0 s"; setTimeout(function () { location.reload(); }, 1500); return; }
-    reste.textContent = format(s);
+    var s = Math.max(0, Math.round((cible - Date.now()) / 1000));
+    var j = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+    if (chrono.dataset.jours !== (j ? "1" : "0")) construire(j > 0);
+    if (j) poser("j", String(j));
+    poser("h", deux(h)); poser("min", deux(m)); poser("s", deux(sec));
     if (ouvert && s <= 3600 && !bandeau.classList.contains("est-bientot")) {
       bandeau.classList.replace("est-ouvert", "est-bientot");
       var t = bandeau.querySelector("[data-titre]");
       if (t) t.textContent = "Bientôt la fermeture";
     }
-    setTimeout(maj, s < 3600 ? 1000 : 15000);
+    if (s === 0) { setTimeout(function () { location.reload(); }, 1500); return; }
+    setTimeout(maj, 1000 - (Date.now() % 1000) + 5);  // calé sur la seconde pile
   }
   maj();
 })();

@@ -57,10 +57,10 @@
         <div class="conteneur">
           {% if etat_boutique.ouvert %}
             <span><span class="point" aria-hidden="true"></span><strong data-titre>{% if etat_boutique.bientot %}Bientôt la fermeture{% else %}Ouvert{% endif %}</strong> · jusqu'à {{ etat_boutique.fermeture }}</span>
-            <span class="compte">Fermeture dans <b class="chiffre" data-reste>—</b></span>
+            <span class="compte">Fermeture dans <span class="chrono" data-reste aria-hidden="true"></span></span>
           {% else %}
             <span><i class="bi bi-moon-stars me-1" aria-hidden="true"></i><strong>Boutique fermée</strong> · réouverture {{ etat_boutique.quand }}</span>
-            {% if etat_boutique.cible %}<span class="compte">Dans <b class="chiffre" data-reste>—</b></span>{% endif %}
+            {% if etat_boutique.cible %}<span class="compte">Dans <span class="chrono" data-reste aria-hidden="true"></span></span>{% endif %}
             <span class="detail">{% if etat_boutique.commandes_possibles %}Vous pouvez commander : nous traiterons votre commande à l'ouverture.{% else %}Vous pouvez préparer votre panier en attendant.{% endif %}</span>
           {% endif %}
         </div>
