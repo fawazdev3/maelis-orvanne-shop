@@ -357,7 +357,7 @@ class ReglagesForm(forms.ModelForm):
         fields = [
             "nom_boutique", "slogan", "whatsapp", "lien_facebook", "lien_instagram", "lien_tiktok", "pixel_facebook",
             "commandes_ouvertes", "message_commandes_fermees", "maintenance", "message_maintenance",
-            "horaires_actifs", "commandes_hors_horaires",
+            "horaires_actifs", "commandes_hors_horaires", "fin_maintenance",
         ]
         widgets = {
             "nom_boutique": forms.TextInput(attrs={"class": "form-control"}),
@@ -373,10 +373,12 @@ class ReglagesForm(forms.ModelForm):
             "horaires_actifs": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch"}),
             "commandes_hors_horaires": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "message_maintenance": forms.TextInput(attrs={"class": "form-control"}),
+            "fin_maintenance": forms.DateTimeInput(attrs={"class": "form-control", "type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["fin_maintenance"].input_formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"]
         self.fields["pays"].choices = [(c, p["nom"]) for c, p in PAYS.items()]
         self.fields["pays"].initial = self.instance.pays_effectifs
 
@@ -385,6 +387,17 @@ class ReglagesForm(forms.ModelForm):
         if num and not 10 <= len(num) <= 15:
             raise forms.ValidationError("Numéro complet avec l'indicatif, ex. 22890123456 (Togo) ou 2290197123456 (Bénin).")
         return num
+
+    def clean(self):
+        donnees = super().clean()
+        from django.utils import timezone
+
+        fin = donnees.get("fin_maintenance")
+        if donnees.get("maintenance") and fin and fin <= timezone.now():
+            self.add_error("fin_maintenance", "Cette heure est déjà passée : choisissez une heure à venir.")
+        if not donnees.get("maintenance"):
+            donnees["fin_maintenance"] = None
+        return donnees
 
     def clean_pays(self):
         pays = self.cleaned_data["pays"]

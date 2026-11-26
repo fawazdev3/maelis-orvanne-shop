@@ -15,6 +15,13 @@ class MaintenanceMiddleware:
             from .models import ReglagesSite
 
             reglages = ReglagesSite.charger()
-            if reglages.maintenance:
-                return render(request, "boutique/maintenance.html", {"reglages": reglages}, status=503)
+            if reglages.maintenance_active():
+                from django.utils import timezone
+
+                contexte = {"reglages": reglages, "fin_texte": reglages.fin_maintenance_texte()}
+                reponse = render(request, "boutique/maintenance.html", contexte, status=503)
+                if reglages.fin_maintenance:
+                    secondes = int((reglages.fin_maintenance - timezone.now()).total_seconds())
+                    reponse["Retry-After"] = str(max(secondes, 60))
+                return reponse
         return self.get_response(request)

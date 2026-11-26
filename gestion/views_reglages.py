@@ -41,6 +41,7 @@ def _donnees_exemple():
 @acces_requis("reglages")
 def reglages(request):
     obj = ReglagesSite.charger()
+    obj.maintenance_active()  # arrête la maintenance si l'heure de fin est passée
     form = ReglagesForm(request.POST or None, instance=obj)
     horaires = horaires_formset(request.POST or None)
     if request.method == "POST":

@@ -383,6 +383,35 @@ class EquipeReglagesTests(TestCase):
         self.assertContains(r, "Revenez dans quelques instants", status_code=503)
         self.assertEqual(self.client.get(reverse("gestion:connexion")).status_code, 200)
 
+    def test_maintenance_avec_heure_de_fin(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from boutique.models import ReglagesSite
+
+        base = {"nom_boutique": "M", "slogan": "s", "whatsapp": "", "pays": ["TG"], "commandes_ouvertes": "on",
+                "message_commandes_fermees": "x", "message_maintenance": "Petite pause", "maintenance": "on",
+                **self.horaires_post()}
+        fin = timezone.localtime() + timedelta(days=1)
+        r = self.client.post(reverse("gestion:reglages"), {**base, "fin_maintenance": fin.strftime("%Y-%m-%dT%H:%M")})
+        self.assertRedirects(r, reverse("gestion:reglages"))
+        self.client.logout()
+        r = self.client.get("/")
+        self.assertEqual(r.status_code, 503)
+        self.assertContains(r, "Retour du site prévu", status_code=503)
+        self.assertContains(r, "Demain à", status_code=503)
+        self.assertIn("Retry-After", r)
+        # heure passée : le site se rouvre tout seul
+        ReglagesSite.objects.filter(pk=1).update(fin_maintenance=timezone.now() - timedelta(minutes=1))
+        self.assertEqual(self.client.get("/").status_code, 200)
+        self.assertFalse(ReglagesSite.charger().maintenance)
+
+    def test_maintenance_heure_passee_refusee(self):
+        base = {"nom_boutique": "M", "slogan": "s", "whatsapp": "", "pays": ["TG"], "commandes_ouvertes": "on",
+                "message_commandes_fermees": "x", "message_maintenance": "x", "maintenance": "on",
+                "fin_maintenance": "2020-01-01T10:00", **self.horaires_post()}
+        r = self.client.post(reverse("gestion:reglages"), base)
+        self.assertContains(r, "déjà passée")
+
     def test_sauvegarde_et_exemples(self):
         from django.core.management import call_command
 

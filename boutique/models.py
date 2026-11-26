@@ -433,6 +433,10 @@ class ReglagesSite(models.Model):
     message_maintenance = models.CharField(
         "message de maintenance", max_length=200, default="Le site est en cours d'amélioration. Revenez dans quelques instants.",
     )
+    fin_maintenance = models.DateTimeField(
+        "fin de la maintenance", null=True, blank=True,
+        help_text="Affichée aux visiteurs. À cette heure-là, le site se rouvre tout seul. Laissez vide si vous ne savez pas.",
+    )
     modifie_le = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -452,6 +456,37 @@ class ReglagesSite(models.Model):
         self.whatsapp = "".join(c for c in self.whatsapp if c.isdigit())
         self.pixel_facebook = "".join(c for c in self.pixel_facebook if c.isdigit())
         super().save(*args, **kwargs)
+
+    def maintenance_active(self, maintenant=None):
+        """Vrai si le site est en maintenance. Une fois l'heure de fin passée, la maintenance s'arrête d'elle-même."""
+        from django.utils import timezone
+
+        if not self.maintenance:
+            return False
+        if self.fin_maintenance and (maintenant or timezone.now()) >= self.fin_maintenance:
+            ReglagesSite.objects.filter(pk=self.pk).update(maintenance=False, fin_maintenance=None)
+            self.maintenance, self.fin_maintenance = False, None
+            return False
+        return True
+
+    def fin_maintenance_texte(self, maintenant=None):
+        """« aujourd'hui à 14h », « demain à 9h30 », « samedi 28 novembre à 10h »."""
+        from django.utils import timezone
+
+        if not self.fin_maintenance:
+            return ""
+        fin = timezone.localtime(self.fin_maintenance)
+        jour = timezone.localtime(maintenant or timezone.now()).date()
+        h = heure_fr(fin.time())
+        ecart = (fin.date() - jour).days
+        if ecart <= 0:
+            return f"aujourd'hui à {h}"
+        if ecart == 1:
+            return f"demain à {h}"
+        jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+        mois = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+                "septembre", "octobre", "novembre", "décembre"]
+        return f"{jours[fin.weekday()]} {fin.day} {mois[fin.month - 1]} à {h}"
 
     @property
     def whatsapp_effectif(self):

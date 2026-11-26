@@ -26,6 +26,14 @@
             </div>
             <p class="form-text mt-1 mb-2">Les visiteurs voient une page d'attente à la place du site. Vous, connecté, continuez à voir le site normalement.</p>
             {{ form.message_maintenance }}
+            <div class="row g-2 align-items-end mt-1">
+              <div class="col-sm-6">
+                <label class="form-label small mb-1" for="{{ form.fin_maintenance.id_for_label }}">Fin prévue (date et heure)</label>
+                {{ form.fin_maintenance }}
+              </div>
+              <div class="col-sm-6 form-text mb-1">{% if obj.maintenance and obj.fin_maintenance %}Retour annoncé : <strong>{{ obj.fin_maintenance_texte }}</strong>.{% else %}Facultatif. À cette heure-là, le site se rouvre tout seul.{% endif %}</div>
+            </div>
+            {% for e in form.fin_maintenance.errors %}<div class="text-danger small mt-1">{{ e }}</div>{% endfor %}
           </div>
         </div>
       </section>
