@@ -39,7 +39,7 @@ Le client choisit ses produits et valide sa commande en trois étapes. La comman
   Le rôle **Administrateur** a accès à tout. Le rôle **Comptabilité** est fourni par défaut.
 - **Réglages du site** :
   - nom, phrase d'accroche, numéro WhatsApp, pays livrés, réseaux sociaux et Pixel Facebook ;
-  - horaires d'ouverture jour par jour : en dehors des horaires, le site affiche « Boutique fermée » avec la prochaine réouverture, et les commandes attendent l'ouverture (ou restent possibles, au choix) ;
+  - horaires d'ouverture jour par jour, avec un bandeau toujours visible en haut du site : « Ouvert », compte à rebours jusqu'à la fermeture, alerte « Bientôt la fermeture » la dernière heure, puis « Boutique fermée » avec le décompte jusqu'à la réouverture. En dehors des horaires, les commandes attendent l'ouverture (ou restent possibles, au choix) ;
   - pause des commandes ;
   - mode maintenance avec heure de fin facultative : la page d'attente annonce le retour du site (« Demain à 14h », compte à rebours) et le site se rouvre tout seul à l'heure choisie ;
   - sauvegarde des données ;

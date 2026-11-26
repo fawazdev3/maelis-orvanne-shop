@@ -355,10 +355,22 @@ h1, h2, h3, .serif {
 .pied .reseaux { display: flex; gap: .8rem; margin-top: .9rem; font-size: 1.15rem; }
 
 /* ---------- Horaires d'ouverture ---------- */
-.bandeau-ferme { background: var(--b-vin-fonce); color: var(--b-ivoire); font-size: .88rem; }
-.bandeau-ferme .conteneur { display: flex; align-items: flex-start; justify-content: center; gap: .55rem; padding-top: .6rem; padding-bottom: .6rem; text-align: center; }
-.bandeau-ferme i { color: var(--b-or-clair); margin-top: .1rem; }
-.bandeau-ferme strong { color: #fff; font-weight: 600; }
+.bandeau-horaires { font-size: .86rem; border-bottom: 1px solid var(--b-bord); }
+.bandeau-horaires .conteneur { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; column-gap: 1.1rem; row-gap: .15rem; padding-top: .5rem; padding-bottom: .5rem; text-align: center; }
+.bandeau-horaires .compte { white-space: nowrap; }
+.bandeau-horaires .compte b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.bandeau-horaires .detail { flex-basis: 100%; font-size: .8rem; opacity: .85; }
+.bandeau-horaires .point { width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; display: inline-block; margin-right: .5rem; vertical-align: .05rem; }
+.bandeau-horaires.est-ouvert { background: #EEF4EE; color: #1F5A33; }
+.bandeau-horaires.est-ouvert .point { background: #2E8A4E; box-shadow: 0 0 0 3px rgba(46, 138, 78, .18); }
+.bandeau-horaires.est-bientot { background: #FBEFD9; color: #7A4A0E; }
+.bandeau-horaires.est-bientot .point { background: #D98A1C; animation: pulsation 1.6s ease-in-out infinite; }
+.bandeau-horaires.est-ferme { background: var(--b-vin-fonce); color: var(--b-ivoire); border-bottom-color: transparent; }
+.bandeau-horaires.est-ferme i { color: var(--b-or-clair); }
+.bandeau-horaires.est-ferme strong { color: #fff; }
+@keyframes pulsation { 50% { box-shadow: 0 0 0 5px rgba(217, 138, 28, .25); } }
+@media (prefers-reduced-motion: reduce) { .bandeau-horaires .point { animation: none !important; } }
+@media (max-width: 575.98px) { .bandeau-horaires { font-size: .8rem; } .bandeau-horaires .conteneur { column-gap: .8rem; } }
 .pied .horaires-pied { gap: .2rem; font-size: .86rem; max-width: 260px; }
 .pied .horaires-pied li { display: flex; justify-content: space-between; gap: 1rem; }
 .pied .horaires-pied li.auj { color: #fff; font-weight: 600; }

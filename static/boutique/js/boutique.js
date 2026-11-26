@@ -386,3 +386,31 @@
   majCompteur();
   window.addEventListener("storage", function (e) { if (e.key === CLE) majCompteur(); });
 })();
+
+
+// Bandeau des horaires : compte à rebours jusqu'à la fermeture (ou la réouverture)
+(function () {
+  var bandeau = document.querySelector(".bandeau-horaires[data-cible]");
+  if (!bandeau) return;
+  var reste = bandeau.querySelector("[data-reste]");
+  var cible = new Date(bandeau.dataset.cible).getTime();
+  var ouvert = bandeau.dataset.ouvert === "1";
+  function format(s) {
+    var j = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+    if (j) return j + " j " + h + " h";
+    if (h) return h + " h " + String(m).padStart(2, "0") + " min";
+    return m + " min " + String(sec).padStart(2, "0") + " s";
+  }
+  function maj() {
+    var s = Math.round((cible - Date.now()) / 1000);
+    if (s <= 0) { reste.textContent = "0 s"; setTimeout(function () { location.reload(); }, 1500); return; }
+    reste.textContent = format(s);
+    if (ouvert && s <= 3600 && !bandeau.classList.contains("est-bientot")) {
+      bandeau.classList.replace("est-ouvert", "est-bientot");
+      var t = bandeau.querySelector("[data-titre]");
+      if (t) t.textContent = "Bientôt la fermeture";
+    }
+    setTimeout(maj, s < 3600 ? 1000 : 15000);
+  }
+  maj();
+})();

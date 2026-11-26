@@ -51,15 +51,24 @@
         <span class="compteur-panier chiffre" data-compteur-panier data-vide="1">0</span>
       </a>
     </div>
+  {% if etat_boutique %}
+      <div class="bandeau-horaires {% if etat_boutique.ouvert %}{% if etat_boutique.bientot %}est-bientot{% else %}est-ouvert{% endif %}{% else %}est-ferme{% endif %}"
+           {% if etat_boutique.cible %}data-cible="{{ etat_boutique.cible|date:'c' }}"{% endif %} data-ouvert="{{ etat_boutique.ouvert|yesno:'1,0' }}">
+        <div class="conteneur">
+          {% if etat_boutique.ouvert %}
+            <span><span class="point" aria-hidden="true"></span><strong data-titre>{% if etat_boutique.bientot %}Bientôt la fermeture{% else %}Ouvert{% endif %}</strong> · jusqu'à {{ etat_boutique.fermeture }}</span>
+            <span class="compte">Fermeture dans <b class="chiffre" data-reste>—</b></span>
+          {% else %}
+            <span><i class="bi bi-moon-stars me-1" aria-hidden="true"></i><strong>Boutique fermée</strong> · réouverture {{ etat_boutique.quand }}</span>
+            {% if etat_boutique.cible %}<span class="compte">Dans <b class="chiffre" data-reste>—</b></span>{% endif %}
+            <span class="detail">{% if etat_boutique.commandes_possibles %}Vous pouvez commander : nous traiterons votre commande à l'ouverture.{% else %}Vous pouvez préparer votre panier en attendant.{% endif %}</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
   </header>
 
-  {% if etat_boutique and not etat_boutique.ouvert %}
-    <div class="bandeau-ferme" role="status">
-      <div class="conteneur"><i class="bi bi-moon-stars" aria-hidden="true"></i>
-        <span><strong>Boutique fermée.</strong> Réouverture {{ etat_boutique.quand }}.{% if etat_boutique.commandes_possibles %} Vous pouvez commander dès maintenant : nous traiterons votre commande à l'ouverture.{% else %} Vous pouvez parcourir les produits et préparer votre panier.{% endif %}</span>
-      </div>
-    </div>
-  {% endif %}
+
 
   <main id="contenu">
     {% if messages %}

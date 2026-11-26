@@ -338,7 +338,7 @@ class HorairesTests(TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertContains(r, "Réouverture", status_code=400)
         self.assertFalse(Commande.objects.exists())
-        self.assertContains(self.client.get("/"), "Boutique fermée.")
+        self.assertContains(self.client.get("/"), "Boutique fermée")
 
     def test_commande_acceptee_si_reglage(self):
         self.ferme_aujourdhui()
@@ -347,3 +347,30 @@ class HorairesTests(TestCase):
         reg.save()
         self.assertEqual(self.commander().status_code, 302)
         self.assertEqual(Commande.objects.count(), 1)
+
+
+class BandeauHorairesTests(TestCase):
+    def setUp(self):
+        reg = ReglagesSite.charger()
+        reg.horaires_actifs = True
+        reg.save()
+
+    def etat(self, *date):
+        from datetime import datetime
+        from django.utils import timezone
+        from .horaires import etat_boutique
+        return etat_boutique(timezone.make_aware(datetime(*date)))
+
+    def test_cible_fermeture_et_bientot(self):
+        e = self.etat(2026, 11, 26, 17, 45)  # jeudi
+        self.assertEqual((e["ouvert"], e["bientot"], e["cible"].hour), (True, False, 19))
+        self.assertTrue(self.etat(2026, 11, 26, 18, 30)["bientot"])
+
+    def test_cible_reouverture(self):
+        e = self.etat(2026, 11, 28, 20, 0)  # samedi soir -> lundi 8h
+        self.assertEqual((e["cible"].day, e["cible"].hour), (30, 8))
+
+    def test_bandeau_affiche(self):
+        r = self.client.get("/")
+        self.assertContains(r, "bandeau-horaires")
+        self.assertContains(r, "data-cible=")

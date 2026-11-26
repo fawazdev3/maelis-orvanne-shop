@@ -31,8 +31,14 @@ def etat_boutique(maintenant=None, reglages=None):
     heure = maintenant.time()
 
     if aujourdhui.ouvert and aujourdhui.ouverture <= heure < aujourdhui.fermeture:
+        fermeture = maintenant.replace(
+            hour=aujourdhui.fermeture.hour, minute=aujourdhui.fermeture.minute, second=0, microsecond=0
+        )
         return {
             "ouvert": True,
+            "fermeture": heure_fr(aujourdhui.fermeture),
+            "cible": fermeture,
+            "bientot": (fermeture - maintenant) <= timedelta(hours=1),
             "texte": f"Ouvert aujourd'hui jusqu'à {heure_fr(aujourdhui.fermeture)}",
             "commandes_possibles": True,
             "semaine": semaine,
@@ -48,11 +54,14 @@ def etat_boutique(maintenant=None, reglages=None):
         prochaine = (decalage, jour)
         break
 
+    cible = None
     if prochaine is None:
         quand = "prochainement"
     else:
         decalage, jour = prochaine
         h = heure_fr(jour.ouverture)
+        date_ouverture = maintenant.date() + timedelta(days=decalage)
+        cible = timezone.make_aware(datetime.combine(date_ouverture, jour.ouverture))
         if decalage == 0:
             quand = f"aujourd'hui à {h}"
         elif decalage == 1:
@@ -64,6 +73,8 @@ def etat_boutique(maintenant=None, reglages=None):
         "ouvert": False,
         "texte": f"La boutique est fermée pour le moment. Réouverture {quand}.",
         "quand": quand,
+        "cible": cible,
+        "bientot": False,
         "commandes_possibles": reglages.commandes_hors_horaires,
         "semaine": semaine,
         "aujourdhui": maintenant.weekday(),
