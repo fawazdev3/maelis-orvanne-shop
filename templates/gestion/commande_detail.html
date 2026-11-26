@@ -38,7 +38,7 @@
           </tbody>
           <tfoot>
             <tr class="ligne-discrete"><th scope="row" colspan="3" class="text-end fw-normal">Articles</th><td class="text-end text-nowrap chiffre">{{ commande.montant_articles|fcfa }}</td></tr>
-            <tr class="ligne-discrete"><th scope="row" colspan="3" class="text-end fw-normal">Livraison ({{ commande.ville }})</th><td class="text-end text-nowrap chiffre">{% if commande.livraison_a_confirmer %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}Offerte{% endif %}</td></tr>
+            <tr class="ligne-discrete"><th scope="row" colspan="3" class="text-end fw-normal">Livraison ({{ commande.ville }})</th><td class="text-end text-nowrap chiffre">{% if commande.livraison_a_confirmer %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}Gratuite{% endif %}</td></tr>
             <tr><th scope="row" colspan="3" class="text-end">Total à encaisser</th><td class="text-end fw-bold fs-6 text-nowrap chiffre">{{ commande.total|fcfa }}</td></tr>
             <tr><td colspan="4" class="text-end">{% include "gestion/_paiement.html" with c=commande %} <span class="small text-body-secondary ms-1">{{ commande.get_mode_paiement_display }}</span></td></tr>
           </tfoot>

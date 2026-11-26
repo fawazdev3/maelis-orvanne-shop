@@ -11,6 +11,11 @@ def boutique_infos(request):
         "BOUTIQUE_NOM": reglages.nom_boutique,
         "BOUTIQUE_DEVISE": settings.BOUTIQUE_DEVISE,
     }
+    if not request.path.startswith("/gestion/"):
+        from boutique.horaires import etat_boutique, livraison_gratuite_texte
+
+        contexte["etat_boutique"] = etat_boutique(reglages=reglages)
+        contexte["livraison_gratuite"] = livraison_gratuite_texte(reglages.pays_effectifs)
     utilisateur = getattr(request, "user", None)
     if utilisateur is not None and utilisateur.is_authenticated and utilisateur.is_staff and request.path.startswith("/gestion/"):
         from boutique.models import Commande

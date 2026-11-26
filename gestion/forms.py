@@ -357,6 +357,7 @@ class ReglagesForm(forms.ModelForm):
         fields = [
             "nom_boutique", "slogan", "whatsapp", "lien_facebook", "lien_instagram", "lien_tiktok", "pixel_facebook",
             "commandes_ouvertes", "message_commandes_fermees", "maintenance", "message_maintenance",
+            "horaires_actifs", "commandes_hors_horaires",
         ]
         widgets = {
             "nom_boutique": forms.TextInput(attrs={"class": "form-control"}),
@@ -369,6 +370,8 @@ class ReglagesForm(forms.ModelForm):
             "commandes_ouvertes": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch"}),
             "message_commandes_fermees": forms.TextInput(attrs={"class": "form-control"}),
             "maintenance": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch"}),
+            "horaires_actifs": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch"}),
+            "commandes_hors_horaires": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "message_maintenance": forms.TextInput(attrs={"class": "form-control"}),
         }
 
@@ -396,3 +399,34 @@ class ReglagesForm(forms.ModelForm):
         if commit:
             obj.save()
         return obj
+
+
+class HoraireJourForm(forms.ModelForm):
+    class Meta:
+        from boutique.models import HoraireJour
+
+        model = HoraireJour
+        fields = ["ouvert", "ouverture", "fermeture"]
+        widgets = {
+            "ouvert": forms.CheckboxInput(attrs={"class": "form-check-input", "role": "switch"}),
+            "ouverture": forms.TimeInput(attrs={"class": "form-control form-control-sm", "type": "time"}, format="%H:%M"),
+            "fermeture": forms.TimeInput(attrs={"class": "form-control form-control-sm", "type": "time"}, format="%H:%M"),
+        }
+
+    def clean(self):
+        donnees = super().clean()
+        debut, fin = donnees.get("ouverture"), donnees.get("fermeture")
+        if donnees.get("ouvert") and debut and fin and fin <= debut:
+            raise forms.ValidationError("L'heure de fermeture doit être après l'heure d'ouverture.")
+        return donnees
+
+
+def horaires_formset(data=None):
+    from django.forms import modelformset_factory
+
+    from boutique.horaires import horaires_semaine
+    from boutique.models import HoraireJour
+
+    horaires_semaine()  # crée les 7 jours s'il en manque
+    Formset = modelformset_factory(HoraireJour, form=HoraireJourForm, extra=0)
+    return Formset(data, queryset=HoraireJour.objects.order_by("jour"), prefix="horaires")

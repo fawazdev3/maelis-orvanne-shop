@@ -317,6 +317,35 @@ class EquipeReglagesTests(TestCase):
         self.client.post(reverse("gestion:compte_supprimer", args=[self.admin.pk]))
         self.assertTrue(get_user_model().objects.filter(username="admin").exists())
 
+    @staticmethod
+    def horaires_post(**changements):
+        from boutique.horaires import horaires_semaine
+
+        d = {"horaires-TOTAL_FORMS": "7", "horaires-INITIAL_FORMS": "7", "horaires-MIN_NUM_FORMS": "0", "horaires-MAX_NUM_FORMS": "1000"}
+        for i, h in enumerate(horaires_semaine()):
+            d[f"horaires-{i}-id"] = str(h.pk)
+            if h.ouvert:
+                d[f"horaires-{i}-ouvert"] = "on"
+            d[f"horaires-{i}-ouverture"] = h.ouverture.strftime("%H:%M")
+            d[f"horaires-{i}-fermeture"] = h.fermeture.strftime("%H:%M")
+        d.update(changements)
+        return d
+
+    def test_reglages_horaires(self):
+        from boutique.models import HoraireJour, ReglagesSite
+
+        base = {"nom_boutique": "M", "slogan": "s", "whatsapp": "", "pays": ["TG"], "commandes_ouvertes": "on",
+                "message_commandes_fermees": "x", "message_maintenance": "x", "horaires_actifs": "on"}
+        r = self.client.post(reverse("gestion:reglages"), {**base, **self.horaires_post(**{"horaires-0-ouverture": "09:30", "horaires-6-ouvert": "on"})})
+        self.assertRedirects(r, reverse("gestion:reglages"))
+        self.assertTrue(ReglagesSite.charger().horaires_actifs)
+        self.assertEqual(HoraireJour.objects.get(jour=0).ouverture.strftime("%H:%M"), "09:30")
+        self.assertTrue(HoraireJour.objects.get(jour=6).ouvert)
+        # fermeture avant l'ouverture : refusé
+        r = self.client.post(reverse("gestion:reglages"), {**base, **self.horaires_post(**{"horaires-1-fermeture": "07:00"})})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "doit être après")
+
     def test_reglages_whatsapp_pays_et_pause(self):
         from boutique.models import ReglagesSite
 
@@ -324,6 +353,7 @@ class EquipeReglagesTests(TestCase):
             "nom_boutique": "Maélis Orvanne Shop", "slogan": "Nouveau slogan", "whatsapp": "+228 90 00 00 01",
             "pays": ["TG", "BJ"], "commandes_ouvertes": "", "message_commandes_fermees": "En pause",
             "message_maintenance": "x", "pixel_facebook": "1234567890",
+            **self.horaires_post(),
         })
         self.assertRedirects(r, reverse("gestion:reglages"))
         reg = ReglagesSite.charger()

@@ -424,6 +424,11 @@ class ReglagesSite(models.Model):
         "message quand les commandes sont en pause", max_length=200,
         default="Les commandes sont en pause pour quelques jours. Revenez bientôt !",
     )
+    horaires_actifs = models.BooleanField("appliquer les horaires d'ouverture", default=False)
+    commandes_hors_horaires = models.BooleanField(
+        "accepter les commandes quand la boutique est fermée", default=False,
+        help_text="Si coché, le client voit que la boutique est fermée mais peut quand même commander.",
+    )
     maintenance = models.BooleanField("site en maintenance", default=False)
     message_maintenance = models.CharField(
         "message de maintenance", max_length=200, default="Le site est en cours d'amélioration. Revenez dans quelques instants.",
@@ -460,3 +465,33 @@ class ReglagesSite(models.Model):
 
         codes = [c for c in self.pays_livres.split(",") if c] or list(getattr(settings, "BOUTIQUE_PAYS", ["TG"]))
         return [c.strip().upper() for c in codes]
+
+
+class HoraireJour(models.Model):
+    """Horaires d'ouverture de la boutique, un par jour de la semaine (0 = lundi)."""
+
+    JOURS = [(0, "Lundi"), (1, "Mardi"), (2, "Mercredi"), (3, "Jeudi"), (4, "Vendredi"), (5, "Samedi"), (6, "Dimanche")]
+
+    jour = models.PositiveSmallIntegerField("jour", choices=JOURS, unique=True)
+    ouvert = models.BooleanField("ouvert", default=True)
+    ouverture = models.TimeField("ouverture", default="08:00")
+    fermeture = models.TimeField("fermeture", default="19:00")
+
+    class Meta:
+        verbose_name = "horaire d'ouverture"
+        verbose_name_plural = "horaires d'ouverture"
+        ordering = ["jour"]
+
+    def __str__(self):
+        return f"{self.get_jour_display()} : {self.plage}"
+
+    @property
+    def plage(self):
+        if not self.ouvert:
+            return "Fermé"
+        return f"{heure_fr(self.ouverture)} – {heure_fr(self.fermeture)}"
+
+
+def heure_fr(t):
+    """08:00 -> 8h, 18:30 -> 18h30"""
+    return f"{t.hour}h{t.minute:02d}" if t.minute else f"{t.hour}h"

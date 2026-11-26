@@ -32,7 +32,7 @@
         {% for l in commande.lignes.all %}
           <div class="ligne"><span>{{ l.nom_produit }} <span class="text-body-secondary chiffre">× {{ l.quantite }}</span></span><span class="prix text-nowrap">{{ l.sous_total|fcfa }}</span></div>
         {% endfor %}
-        <div class="ligne"><span class="text-body-secondary">Livraison</span><span class="prix text-nowrap">{% if commande.livraison_a_confirmer %}à confirmer{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}offerte{% endif %}</span></div>
+        <div class="ligne"><span class="text-body-secondary">Livraison</span><span class="prix text-nowrap">{% if commande.livraison_a_confirmer %}à confirmer{% elif commande.frais_livraison %}{{ commande.frais_livraison|fcfa }}{% else %}gratuite{% endif %}</span></div>
         <div class="ligne fw-bold"><span>Total à payer à la réception</span><span class="prix text-nowrap">{{ commande.total|fcfa }}{% if commande.livraison_a_confirmer %} + envoi{% endif %}</span></div>
         <div class="ligne"><span class="text-body-secondary">Paiement</span><span class="text-end">{{ commande.get_mode_paiement_display }}</span></div>
         <div class="ligne"><span class="text-body-secondary">Adresse</span><span class="text-end">{{ commande.ville }} ({{ commande.nom_pays }}){% if commande.lieu_livraison %} — {{ commande.lieu_livraison }}{% endif %}</span></div>

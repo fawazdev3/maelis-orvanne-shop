@@ -469,3 +469,8 @@ a.tuile-wa:hover { border-color: var(--mo-bord-fort); background: var(--mo-survo
 .liste-maintenance .item:first-child { border-top: 0; }
 .liste-maintenance strong { display: block; font-size: .9rem; }
 .liste-maintenance span { display: block; font-size: .8rem; color: var(--mo-texte-doux); line-height: 1.45; margin-top: .15rem; }
+
+/* Horaires d'ouverture (réglages) */
+.table-horaires th, .table-horaires td { padding: .4rem .5rem; }
+.table-horaires thead th { font-size: .74rem; text-transform: uppercase; letter-spacing: .06em; color: var(--mo-texte-doux, #6b6461); font-weight: 600; }
+.table-horaires input[type="time"] { max-width: 120px; }

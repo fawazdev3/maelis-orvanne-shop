@@ -13,10 +13,11 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from boutique.horaires import etat_boutique
 from boutique.models import Arrivage, Categorie, Commande, Produit, ReglagesSite
 
 from .decorators import acces_requis
-from .forms import ReglagesForm
+from .forms import ReglagesForm, horaires_formset
 
 
 def _taille_dossier(chemin):
@@ -41,14 +42,21 @@ def _donnees_exemple():
 def reglages(request):
     obj = ReglagesSite.charger()
     form = ReglagesForm(request.POST or None, instance=obj)
-    if request.method == "POST" and form.is_valid():
-        form.save()
-        messages.success(request, "Réglages enregistrés.")
-        return redirect("gestion:reglages")
+    horaires = horaires_formset(request.POST or None)
+    if request.method == "POST":
+        if form.is_valid() and horaires.is_valid():
+            with transaction.atomic():
+                form.save()
+                horaires.save()
+            messages.success(request, "Réglages enregistrés.")
+            return redirect("gestion:reglages")
+        messages.error(request, "Certains réglages sont à corriger : voir les messages en rouge.")
     exemple = _donnees_exemple()
     contexte = {
         "page": "reglages",
         "form": form,
+        "horaires": horaires,
+        "etat_boutique": etat_boutique(reglages=obj),
         "obj": obj,
         "whatsapp_env": "".join(c for c in (settings.BOUTIQUE_WHATSAPP or "") if c.isdigit()),
         "exemple": exemple,

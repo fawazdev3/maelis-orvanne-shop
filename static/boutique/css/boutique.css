@@ -353,3 +353,12 @@ h1, h2, h3, .serif {
   .section-titre .btn-sm { min-height: 36px; font-size: .8rem; }
 }
 .pied .reseaux { display: flex; gap: .8rem; margin-top: .9rem; font-size: 1.15rem; }
+
+/* ---------- Horaires d'ouverture ---------- */
+.bandeau-ferme { background: var(--b-vin-fonce); color: var(--b-ivoire); font-size: .88rem; }
+.bandeau-ferme .conteneur { display: flex; align-items: flex-start; justify-content: center; gap: .55rem; padding-top: .6rem; padding-bottom: .6rem; text-align: center; }
+.bandeau-ferme i { color: var(--b-or-clair); margin-top: .1rem; }
+.bandeau-ferme strong { color: #fff; font-weight: 600; }
+.pied .horaires-pied { gap: .2rem; font-size: .86rem; max-width: 260px; }
+.pied .horaires-pied li { display: flex; justify-content: space-between; gap: 1rem; }
+.pied .horaires-pied li.auj { color: #fff; font-weight: 600; }

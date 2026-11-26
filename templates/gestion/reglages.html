@@ -1,7 +1,7 @@
 {% extends "gestion/base.html" %}
 {% block titre %}Réglages du site{% endblock %}
 {% block titre_page %}Réglages du site{% endblock %}
-{% block sous_titre %}<p class="sous-titre">Informations de la boutique, ouverture des commandes et maintenance.</p>{% endblock %}
+{% block sous_titre %}<p class="sous-titre">Informations de la boutique, horaires, ouverture des commandes et maintenance.</p>{% endblock %}
 
 {% block contenu %}
 <div class="row g-3 align-items-start">
@@ -26,6 +26,44 @@
             </div>
             <p class="form-text mt-1 mb-2">Les visiteurs voient une page d'attente à la place du site. Vous, connecté, continuez à voir le site normalement.</p>
             {{ form.message_maintenance }}
+          </div>
+        </div>
+      </section>
+
+      <section class="carte mb-3">
+        <div class="carte-entete d-flex justify-content-between align-items-center gap-2">
+          <h2>Horaires d'ouverture</h2>
+          {% if etat_boutique %}<span class="etiquette {% if etat_boutique.ouvert %}statut-livree{% else %}statut-nouvelle{% endif %}">{% if etat_boutique.ouvert %}Ouvert en ce moment{% else %}Fermé en ce moment{% endif %}</span>{% endif %}
+        </div>
+        <div class="carte-corps">
+          <div class="reglage-ligne">
+            <div class="form-check form-switch">
+              {{ form.horaires_actifs }}
+              <label class="form-check-label fw-semibold" for="{{ form.horaires_actifs.id_for_label }}">Appliquer les horaires sur le site</label>
+            </div>
+            <p class="form-text mt-1 mb-2">En dehors des horaires, les visiteurs voient « Boutique fermée » avec le jour et l'heure de réouverture. Ils peuvent toujours parcourir les produits et préparer leur panier. Heure du Togo.</p>
+            <div class="form-check">
+              {{ form.commandes_hors_horaires }}
+              <label class="form-check-label" for="{{ form.commandes_hors_horaires.id_for_label }}">Accepter quand même les commandes quand la boutique est fermée</label>
+            </div>
+          </div>
+          {{ horaires.management_form }}
+          {% if horaires.non_form_errors %}<div class="text-danger small mb-2">{{ horaires.non_form_errors.0 }}</div>{% endif %}
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 table-horaires">
+              <thead><tr><th scope="col">Jour</th><th scope="col">Ouvert</th><th scope="col">Ouverture</th><th scope="col">Fermeture</th></tr></thead>
+              <tbody>
+                {% for f in horaires %}
+                  <tr>
+                    <th scope="row" class="fw-semibold">{{ f.id }}{{ f.instance.get_jour_display }}</th>
+                    <td><div class="form-check form-switch mb-0">{{ f.ouvert }}<label class="visually-hidden" for="{{ f.ouvert.id_for_label }}">Ouvert le {{ f.instance.get_jour_display|lower }}</label></div></td>
+                    <td>{{ f.ouverture }}</td>
+                    <td>{{ f.fermeture }}</td>
+                  </tr>
+                  {% if f.errors %}<tr><td colspan="4" class="text-danger small border-0 pt-0">{% for e in f.non_field_errors %}{{ e }} {% endfor %}{% for champ in f %}{% for e in champ.errors %}{{ e }} {% endfor %}{% endfor %}</td></tr>{% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -124,4 +162,18 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll(".table-horaires tbody tr").forEach(function (tr) {
+    var c = tr.querySelector("input[type=checkbox]");
+    if (!c) return;
+    function maj() { tr.querySelectorAll("input[type=time]").forEach(function (i) { i.disabled = !c.checked; }); }
+    c.addEventListener("change", maj); maj();
+  });
+  document.querySelector(".table-horaires") && document.querySelector(".table-horaires").closest("form").addEventListener("submit", function () {
+    document.querySelectorAll(".table-horaires input[type=time]").forEach(function (i) { i.disabled = false; });
+  });
+</script>
 {% endblock %}

@@ -291,7 +291,7 @@
       var frais = t ? t.frais : null;
       var articles = totalArticles();
       var aConfirmer = frais === null || frais === undefined;
-      document.getElementById("frais-livraison").textContent = aConfirmer ? "à confirmer" : (frais ? fcfa(frais) : "offerte");
+      document.getElementById("frais-livraison").textContent = aConfirmer ? "à confirmer" : (frais ? fcfa(frais) : "Gratuite");
       document.getElementById("total-final").textContent = fcfa(articles + (aConfirmer ? 0 : frais)) + (aConfirmer ? " + envoi" : "");
       document.getElementById("note-envoi").hidden = !aConfirmer;
     }

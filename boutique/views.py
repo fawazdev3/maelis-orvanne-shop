@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from .forms import CommandeClientForm
+from .horaires import etat_boutique
 from .models import Categorie, Commande, LigneCommande, Produit, ReglagesSite, TarifLivraison
 from .pays import PAYS
 from .whatsapp import lien_whatsapp
@@ -121,9 +122,15 @@ def commander(request):
         form.is_valid()
         form.add_error(None, "Trop de commandes envoyées en peu de temps. Réessayez dans quelques minutes, ou écrivez-nous sur WhatsApp.")
         return render(request, "boutique/panier.html", contexte_panier(form), status=429)
-    if not ReglagesSite.charger().commandes_ouvertes:
+    reglages = ReglagesSite.charger()
+    if not reglages.commandes_ouvertes:
         form.is_valid()
-        form.add_error(None, ReglagesSite.charger().message_commandes_fermees)
+        form.add_error(None, reglages.message_commandes_fermees)
+        return render(request, "boutique/panier.html", contexte_panier(form), status=400)
+    etat = etat_boutique(reglages=reglages)
+    if etat and not etat["commandes_possibles"]:
+        form.is_valid()
+        form.add_error(None, etat["texte"] + " Vous pourrez valider votre commande à ce moment-là : votre panier reste enregistré.")
         return render(request, "boutique/panier.html", contexte_panier(form), status=400)
     if not form.is_valid():
         return render(request, "boutique/panier.html", contexte_panier(form), status=400)

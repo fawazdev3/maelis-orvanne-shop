@@ -5,7 +5,7 @@ from django.test import override_settings
 from config.tests_base import TestCase
 from django.urls import reverse
 
-from .models import Categorie, Commande, LigneCommande, Produit, TarifLivraison
+from .models import Categorie, Commande, LigneCommande, Produit, ReglagesSite, TarifLivraison
 from .pays import normaliser_telephone
 
 
@@ -65,7 +65,7 @@ class SitePublicTests(TestCase):
         r = self.client.post(reverse("boutique:commander"), self.donnees([{"id": self.the.pk, "qte": 2}, {"id": self.promo.pk, "qte": 1, "prix": 1}]))
         commande = Commande.objects.get()
         self.assertRedirects(r, reverse("boutique:merci", args=[commande.jeton]))
-        self.assertEqual(commande.total, 2 * 3000 + 3900 + 1000)  # + livraison Lomé
+        self.assertEqual(commande.total, 2 * 3000 + 3900)  # livraison gratuite au Togo
         self.assertEqual(commande.lignes.count(), 2)
         self.assertEqual(commande.statut, Commande.Statut.NOUVELLE)
 
@@ -73,7 +73,7 @@ class SitePublicTests(TestCase):
         self.client.post(reverse("boutique:commander"), self.donnees([{"id": self.the.pk, "qte": 1}, {"id": self.epuise.pk, "qte": 1}, {"id": self.inactif.pk, "qte": 3}]))
         commande = Commande.objects.get()
         self.assertEqual(list(commande.lignes.values_list("nom_produit", flat=True)), ["Thé vert"])
-        self.assertEqual(commande.total, 3000 + 1000)
+        self.assertEqual(commande.total, 3000)
 
     def test_panier_vide_ou_illisible(self):
         for panier in ["[]", "pas du json"]:
@@ -185,6 +185,10 @@ class LivraisonTests(TestCase):
     def setUpTestData(cls):
         cat = Categorie.objects.create(nom="Thés")
         cls.the = Produit.objects.create(categorie=cat, nom="Thé noir", prix=2500, prix_achat=1400)
+        # Tarifs payants pour vérifier le calcul (au Togo la livraison est gratuite par défaut)
+        TarifLivraison.objects.filter(pays="TG").delete()
+        TarifLivraison.objects.create(pays="TG", ville="Lomé", frais=1000)
+        TarifLivraison.objects.create(pays="TG", ville="", frais=None)
 
     def commander(self, ville):
         d = {
@@ -256,3 +260,90 @@ class FormulaireVilleTests(TestCase):
         self.client.post(reverse("boutique:commander"), self.donnees(ville_liste="Kara"))
         r = self.client.get(reverse("boutique:merci", args=[Commande.objects.get().jeton]))
         self.assertContains(r, "ma%20position")
+
+
+class LivraisonGratuiteTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cat = Categorie.objects.create(nom="Thés")
+        cls.the = Produit.objects.create(categorie=cat, nom="Thé vert", prix=2500)
+
+    def test_gratuite_partout_au_togo(self):
+        for ville in ["Lomé", "Kara"]:
+            self.client.post(reverse("boutique:commander"), {
+                "nom_client": "Ama", "telephone": "90123456", "ville_liste": "__autre__", "ville": ville,
+                "mode_paiement": "especes", "note": "", "pays": "TG", "site_web": "",
+                "panier": json.dumps([{"id": self.the.pk, "qte": 1}]),
+            })
+            c = Commande.objects.latest("pk")
+            self.assertEqual((c.frais_livraison, c.total), (0, 2500))
+            self.assertContains(self.client.get(reverse("boutique:merci", args=[c.jeton])), "gratuite")
+        from .whatsapp import message_commande
+        self.assertIn("Livraison : gratuite", message_commande(c))
+
+    def test_annonce_sur_le_site(self):
+        self.assertContains(self.client.get("/"), "Livraison gratuite partout au Togo")
+
+    def test_pas_d_annonce_si_une_ville_est_payante(self):
+        TarifLivraison.objects.create(pays="TG", ville="Kara", frais=2000)
+        self.assertNotContains(self.client.get("/"), "Livraison gratuite")
+
+
+class HorairesTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cat = Categorie.objects.create(nom="Thés")
+        cls.the = Produit.objects.create(categorie=cat, nom="Thé rouge", prix=2000)
+
+    def setUp(self):
+        reg = ReglagesSite.charger()
+        reg.horaires_actifs = True
+        reg.save()
+
+    def etat(self, *date):
+        from datetime import datetime
+        from django.utils import timezone
+        from .horaires import etat_boutique
+        return etat_boutique(timezone.make_aware(datetime(*date)))
+
+    def test_ouvert_et_ferme(self):
+        # 2026-11-23 est un lundi ; par défaut lundi-samedi 8h-19h, dimanche fermé
+        self.assertTrue(self.etat(2026, 11, 23, 10, 0)["ouvert"])
+        self.assertIn("aujourd'hui à 8h", self.etat(2026, 11, 23, 6, 30)["texte"])
+        self.assertIn("demain à 8h", self.etat(2026, 11, 23, 20, 0)["texte"])
+        # samedi soir -> dimanche fermé -> lundi
+        self.assertIn("lundi à 8h", self.etat(2026, 11, 28, 19, 30)["texte"])
+
+    def test_desactive(self):
+        reg = ReglagesSite.charger()
+        reg.horaires_actifs = False
+        reg.save()
+        self.assertIsNone(self.etat(2026, 11, 29, 3, 0))
+
+    def ferme_aujourdhui(self):
+        from django.utils import timezone
+        from .models import HoraireJour
+        HoraireJour.objects.filter(jour=timezone.localtime().weekday()).update(ouvert=False)
+
+    def commander(self):
+        return self.client.post(reverse("boutique:commander"), {
+            "nom_client": "Ama", "telephone": "90123456", "ville_liste": "Lomé", "ville": "",
+            "mode_paiement": "especes", "note": "", "pays": "TG", "site_web": "",
+            "panier": json.dumps([{"id": self.the.pk, "qte": 1}]),
+        })
+
+    def test_commande_refusee_quand_ferme(self):
+        self.ferme_aujourdhui()
+        r = self.commander()
+        self.assertEqual(r.status_code, 400)
+        self.assertContains(r, "Réouverture", status_code=400)
+        self.assertFalse(Commande.objects.exists())
+        self.assertContains(self.client.get("/"), "Boutique fermée.")
+
+    def test_commande_acceptee_si_reglage(self):
+        self.ferme_aujourdhui()
+        reg = ReglagesSite.charger()
+        reg.commandes_hors_horaires = True
+        reg.save()
+        self.assertEqual(self.commander().status_code, 302)
+        self.assertEqual(Commande.objects.count(), 1)

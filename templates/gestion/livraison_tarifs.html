@@ -21,7 +21,7 @@
                 {% for t in g.tarifs %}
                   <tr{% if tarif and tarif.pk == t.pk %} class="ligne-active"{% endif %}>
                     <td class="fw-semibold">{% if t.ville %}{{ t.ville }}{% else %}<span class="text-body-secondary fw-normal">Toutes les autres villes</span>{% endif %}</td>
-                    <td class="chiffre">{% if t.frais is None %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif t.frais == 0 %}Offerte{% else %}{{ t.frais|fcfa }}{% endif %}</td>
+                    <td class="chiffre">{% if t.frais is None %}<span class="etiquette statut-nouvelle">À confirmer</span>{% elif t.frais == 0 %}Gratuite{% else %}{{ t.frais|fcfa }}{% endif %}</td>
                     <td class="text-end text-nowrap">
                       <a href="{% url 'gestion:livraison_tarif_modifier' t.pk %}" class="btn btn-contour btn-icone" aria-label="Modifier le tarif {{ t }}"><i class="bi bi-pencil" aria-hidden="true"></i></a>
                       <form method="post" action="{% url 'gestion:livraison_tarif_supprimer' t.pk %}" class="d-inline">
@@ -63,7 +63,7 @@
             <div class="col-12">
               <label class="form-label" for="{{ form.frais.id_for_label }}">Frais facturés au client</label>
               <div class="input-group">{{ form.frais }}<span class="input-group-text">FCFA</span></div>
-              <div class="form-text">Vide = à confirmer au cas par cas. 0 = livraison offerte.</div>
+              <div class="form-text">Vide = à confirmer au cas par cas. 0 = livraison gratuite.</div>
             </div>
           </div>
           <button type="submit" class="btn btn-mo w-100 mt-3"><i class="bi bi-check2" aria-hidden="true"></i> Enregistrer</button>

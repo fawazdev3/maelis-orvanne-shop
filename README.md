@@ -31,7 +31,7 @@ Le client choisit ses produits et valide sa commande en trois étapes. La comman
 - **Stock** : chaque arrivage enregistre la quantité et le prix d'achat. Il met le stock à jour et crée la dépense correspondante. Le stock baisse quand une commande passe « Livrée », et remonte si elle est annulée. À 0, le produit s'affiche « épuisé ».
 - **Dépenses** : par mois et par catégorie (publicité Facebook, transport et envoi de colis, emballage et divers, catégories personnalisées).
 - **Statistiques** : ventes et bénéfice du jour et du mois, résultat détaillé par jour, mois ou année. Formule : ventes − coût d'achat des articles vendus + frais de livraison − dépenses. S'y ajoutent les produits les plus vendus et un export Excel des ventes et des dépenses.
-- **Tarifs de livraison** : frais par ville et par pays. Un tarif vide signifie « à confirmer » ; dans ce cas, le montant se règle ensuite dans la commande.
+- **Tarifs de livraison** : frais par ville et par pays. Un tarif à 0 signifie « gratuite » (c'est le cas partout au Togo, et le site l'annonce) ; un tarif vide signifie « à confirmer », et le montant se règle ensuite dans la commande.
 - **Équipe et rôles** :
   - comptes à créer, modifier, désactiver ou supprimer ;
   - rôles personnalisables, avec les pages autorisées pour chacun.
@@ -39,6 +39,7 @@ Le client choisit ses produits et valide sa commande en trois étapes. La comman
   Le rôle **Administrateur** a accès à tout. Le rôle **Comptabilité** est fourni par défaut.
 - **Réglages du site** :
   - nom, phrase d'accroche, numéro WhatsApp, pays livrés, réseaux sociaux et Pixel Facebook ;
+  - horaires d'ouverture jour par jour : en dehors des horaires, le site affiche « Boutique fermée » avec la prochaine réouverture, et les commandes attendent l'ouverture (ou restent possibles, au choix) ;
   - pause des commandes et mode maintenance ;
   - sauvegarde des données ;
   - retrait des données d'exemple.
@@ -92,7 +93,7 @@ Copié depuis `.env.exemple`. Il ne doit jamais être partagé ni envoyé sur Gi
 
 ### Réglages modifiables sans toucher au code
 Depuis le back-office :
-- **Réglages du site** : numéro WhatsApp, pays livrés, nom, accroche, réseaux sociaux, Pixel Facebook, pause des commandes, maintenance ;
+- **Réglages du site** : numéro WhatsApp, pays livrés, nom, accroche, réseaux sociaux, Pixel Facebook, horaires d'ouverture, pause des commandes, maintenance ;
 - **Livraison** : tarifs par ville ;
 - **Équipe et rôles** : comptes et droits.
 

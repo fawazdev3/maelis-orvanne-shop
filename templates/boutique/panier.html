@@ -16,6 +16,8 @@
 
     {% if not reglages.commandes_ouvertes %}
       <div class="alert-info-b text-center mb-3"><i class="bi bi-pause-circle me-1"></i> {{ reglages.message_commandes_fermees }}</div>
+    {% elif etat_boutique and not etat_boutique.ouvert and not etat_boutique.commandes_possibles %}
+      <div class="alert-info-b text-center mb-3"><i class="bi bi-moon-stars me-1"></i> Les commandes reprennent {{ etat_boutique.quand }}. Votre panier reste enregistré d'ici là.</div>
     {% endif %}
     <div id="panier-plein">
       <ol class="progression" aria-label="Étapes de la commande">
@@ -39,7 +41,7 @@
           <div class="feuille">
             <div id="lignes-panier"><div class="p-4 text-center text-body-secondary"><span class="spinner-border spinner-border-sm"></span> Chargement…</div></div>
             <div id="avert-indispo" class="note-discrete" hidden>Un article épuisé ne sera pas commandé.</div>
-            <div class="ligne-total"><span>Total des articles <small class="d-block text-body-secondary fw-normal">Livraison calculée selon votre ville</small></span><strong class="prix" data-total-panier>—</strong></div>
+            <div class="ligne-total"><span>Total des articles <small class="d-block text-body-secondary fw-normal">{% if livraison_gratuite %}Livraison gratuite {{ livraison_gratuite }}{% else %}Livraison calculée selon votre ville{% endif %}</small></span><strong class="prix" data-total-panier>—</strong></div>
           </div>
           <div class="pied-pas">
             <a href="{% url 'boutique:catalogue' %}" class="lien-retour">Continuer mes achats</a>
@@ -132,7 +134,7 @@
           </p>
           <div class="pied-pas">
             <button type="button" class="lien-retour" data-suivant="2"><i class="bi bi-arrow-left"></i> Retour</button>
-            <button type="submit" class="btn btn-vin px-4" data-bouton-valider{% if not reglages.commandes_ouvertes %} disabled{% endif %}>{% if whatsapp_actif %}<i class="bi bi-whatsapp"></i> {% endif %}Valider la commande</button>
+            <button type="submit" class="btn btn-vin px-4" data-bouton-valider{% if not reglages.commandes_ouvertes or etat_boutique and not etat_boutique.commandes_possibles %} disabled{% endif %}>{% if whatsapp_actif %}<i class="bi bi-whatsapp"></i> {% endif %}Valider la commande</button>
           </div>
         </div>
       </form>

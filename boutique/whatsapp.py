@@ -17,7 +17,7 @@ def _nom():
 def _livraison(commande):
     if commande.livraison_a_confirmer:
         return f"à confirmer pour {commande.ville}"
-    return _montant(commande.frais_livraison) if commande.frais_livraison else "offerte"
+    return _montant(commande.frais_livraison) if commande.frais_livraison else "gratuite"
 
 
 def message_commande(commande):

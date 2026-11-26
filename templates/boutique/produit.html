@@ -52,7 +52,7 @@
         <ul class="garanties">
           <li><i class="bi bi-cash-coin"></i>Paiement à la livraison : espèces ou Mobile Money</li>
           <li><i class="bi bi-telephone"></i>Nous vous appelons pour confirmer la commande</li>
-          <li><i class="bi bi-truck"></i>Livraison à domicile</li>
+          <li><i class="bi bi-truck"></i>{% if livraison_gratuite %}Livraison gratuite {{ livraison_gratuite }}{% else %}Livraison à domicile{% endif %}</li>
         </ul>
       </div>
     </div>

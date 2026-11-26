@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block titre %}{{ BOUTIQUE_NOM }} — {{ reglages.slogan }}{% endblock %}</title>
-  <meta name="description" content="{% block description %}{{ BOUTIQUE_NOM }} : thés et articles choisis avec soin. Commandez en ligne, livraison à domicile, paiement à la livraison.{% endblock %}">
+  <meta name="description" content="{% block description %}{{ BOUTIQUE_NOM }} : thés et articles choisis avec soin. Commandez en ligne, {% if livraison_gratuite %}livraison gratuite {{ livraison_gratuite }}{% else %}livraison à domicile{% endif %}, paiement à la livraison.{% endblock %}">
   <meta name="theme-color" content="#3F1D24">
   <meta property="og:title" content="{% block og_titre %}{{ BOUTIQUE_NOM }}{% endblock %}">
-  <meta property="og:description" content="Commandez en ligne, payez à la livraison.">
+  <meta property="og:description" content="Commandez en ligne, payez à la livraison.{% if livraison_gratuite %} Livraison gratuite {{ livraison_gratuite }}.{% endif %}">
   <meta property="og:type" content="website">
   {% block og_image %}{% endblock %}
   <link rel="icon" href="{% static 'boutique/img/favicon.svg' %}" type="image/svg+xml">
@@ -53,6 +53,14 @@
     </div>
   </header>
 
+  {% if etat_boutique and not etat_boutique.ouvert %}
+    <div class="bandeau-ferme" role="status">
+      <div class="conteneur"><i class="bi bi-moon-stars" aria-hidden="true"></i>
+        <span><strong>Boutique fermée.</strong> Réouverture {{ etat_boutique.quand }}.{% if etat_boutique.commandes_possibles %} Vous pouvez commander dès maintenant : nous traiterons votre commande à l'ouverture.{% else %} Vous pouvez parcourir les produits et préparer votre panier.{% endif %}</span>
+      </div>
+    </div>
+  {% endif %}
+
   <main id="contenu">
     {% if messages %}
       <div class="conteneur pt-3">
@@ -65,7 +73,7 @@
   <footer class="pied">
     <div class="conteneur">
       <div class="row g-4">
-        <div class="col-md-5">
+        <div class="{% if etat_boutique %}col-lg-4{% else %}col-md-5{% endif %}">
           <div class="nom">MAÉLIS ORVANNE <span style="font-size:.7em;letter-spacing:.4em;color:#D2B47A">SHOP</span></div>
           <p class="accroche mb-2">{{ reglages.slogan }}</p>
           <p class="mb-0">Des produits choisis avec soin, livrés chez vous.</p>
@@ -77,7 +85,7 @@
             </div>
           {% endif %}
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 {% if etat_boutique %}col-md-4 col-lg-2{% else %}col-md-3{% endif %}">
           <h2>Boutique</h2>
           <ul>
             <li><a href="{% url 'boutique:catalogue' %}">Tous les produits</a></li>
@@ -85,15 +93,23 @@
             <li><a href="{% url 'boutique:panier' %}">Mon panier</a></li>
           </ul>
         </div>
-        <div class="col-6 col-md-4">
+        <div class="col-6 col-md-4{% if etat_boutique %} col-lg-3{% endif %}">
           <h2>Comment ça marche</h2>
           <ul>
             <li><i class="bi bi-bag-check me-1"></i> Vous commandez en ligne</li>
             <li><i class="bi bi-telephone me-1"></i> Nous vous appelons pour confirmer</li>
-            <li><i class="bi bi-truck me-1"></i> Livraison à domicile</li>
+            <li><i class="bi bi-truck me-1"></i> {% if livraison_gratuite %}Livraison gratuite {{ livraison_gratuite }}{% else %}Livraison à domicile{% endif %}</li>
             <li><i class="bi bi-cash-coin me-1"></i> Paiement à la livraison (espèces ou Mobile Money)</li>
           </ul>
         </div>
+        {% if etat_boutique %}
+        <div class="col-12 col-md-4 col-lg-3">
+          <h2>Horaires</h2>
+          <ul class="horaires-pied">
+            {% for h in etat_boutique.semaine %}<li{% if h.jour == etat_boutique.aujourdhui %} class="auj"{% endif %}><span>{{ h.get_jour_display }}</span><span class="chiffre">{{ h.plage }}</span></li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
       </div>
       <div class="bas d-flex flex-wrap justify-content-between gap-2">
         <span>© {% now "Y" %} {{ BOUTIQUE_NOM }}</span>
