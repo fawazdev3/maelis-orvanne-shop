@@ -31,7 +31,7 @@
           {% if produit.en_stock %}<span class="dispo-ok"><i class="bi bi-check-circle"></i> Disponible</span>
           {% else %}<span class="dispo-non"><i class="bi bi-clock-history"></i> Épuisé pour le moment</span>{% endif %}
         </div>
-        {% if produit.description %}<p class="description">{{ produit.description }}</p>{% endif %}
+        {% if produit.description %}<div class="description">{{ produit.description|linebreaks }}</div>{% endif %}
 
         {% if produit.en_stock %}
           <div class="d-flex gap-2 flex-wrap align-items-center mt-3">

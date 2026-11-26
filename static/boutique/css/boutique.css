@@ -243,7 +243,9 @@ h1, h2, h3, .serif {
 .fiche h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: .3rem 0 .8rem; }
 .fiche .prix-actuel { font-size: 1.6rem; }
 .fiche .prix-barre { font-size: 1rem; }
-.fiche .description { color: var(--b-texte-doux); line-height: 1.7; white-space: pre-line; margin: 1.2rem 0; }
+.fiche .description { color: var(--b-texte-doux); line-height: 1.7; margin: 1.2rem 0; }
+.fiche .description p { margin: 0 0 .75rem; }
+.fiche .description p:last-child { margin-bottom: 0; }
 .selecteur-qte { display: inline-flex; align-items: center; border: 1px solid var(--b-bord); border-radius: .5rem; background: var(--b-surface); }
 .selecteur-qte button { width: 44px; height: 44px; border: 0; background: transparent; color: var(--b-texte); font-size: 1.1rem; }
 .selecteur-qte button:hover { color: var(--b-vin); }
