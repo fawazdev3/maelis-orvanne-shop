@@ -38,9 +38,19 @@
       <nav class="menu-principal" id="menu-principal" aria-label="Menu principal">
         <a href="{% url 'boutique:accueil' %}" class="{% if page == 'accueil' %}active{% endif %}">Accueil</a>
         <a href="{% url 'boutique:catalogue' %}" class="{% if page == 'catalogue' and not categorie %}active{% endif %}">Tous les produits</a>
-        {% for c in categories|slice:":4" %}
-          <a href="{% url 'boutique:categorie' c.slug %}" class="{% if categorie and categorie.pk == c.pk %}active{% endif %}">{{ c.nom }}</a>
-        {% endfor %}
+        {% if categories %}
+          <div class="menu-deroulant">
+            <button type="button" class="{% if categorie %}active{% endif %}" data-ouvrir-categories aria-expanded="false" aria-controls="liste-categories">
+              Catégories <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </button>
+            <div class="panneau-categories" id="liste-categories" hidden>
+              {% for c in categories %}
+                <a href="{% url 'boutique:categorie' c.slug %}" class="{% if categorie and categorie.pk == c.pk %}active{% endif %}">{{ c.nom }} <span class="n chiffre">{{ c.nb }}</span></a>
+              {% endfor %}
+              <a href="{% url 'boutique:catalogue' %}" class="tout">Voir tous les produits <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+            </div>
+          </div>
+        {% endif %}
       </nav>
 
       <button type="button" class="bouton-menu-mobile" data-ouvrir-menu aria-controls="menu-principal" aria-expanded="false" aria-label="Ouvrir le menu">

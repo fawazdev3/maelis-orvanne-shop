@@ -67,6 +67,24 @@ h1, h2, h3, .serif {
 }
 .menu-principal a:hover { background: var(--b-surface-2); }
 .menu-principal a.active { color: var(--b-vin); background: var(--b-vin-doux); }
+.menu-deroulant { position: relative; }
+.menu-deroulant > button {
+  border: 0; background: none; color: var(--b-texte); font-weight: 500; font-size: .9rem;
+  padding: .5rem .8rem; border-radius: .45rem; min-height: 40px; display: inline-flex; align-items: center; gap: .35rem;
+}
+.menu-deroulant > button:hover { background: var(--b-surface-2); }
+.menu-deroulant > button.active { color: var(--b-vin); background: var(--b-vin-doux); }
+.menu-deroulant > button .bi { font-size: .7rem; transition: transform .2s; }
+.menu-deroulant > button[aria-expanded="true"] .bi { transform: rotate(180deg); }
+.panneau-categories {
+  position: absolute; top: calc(100% + .45rem); right: 0; min-width: 250px; max-height: 65vh; overflow-y: auto;
+  background: var(--b-surface); border: 1px solid var(--b-bord); border-radius: .7rem;
+  box-shadow: 0 12px 32px rgba(33, 29, 28, .12); padding: .4rem; display: grid; gap: .1rem; z-index: 1030;
+}
+.panneau-categories[hidden] { display: none; }
+.menu-principal .panneau-categories a { justify-content: space-between; gap: 1rem; min-height: 38px; }
+.panneau-categories .n { font-size: .75rem; color: var(--b-texte-doux); background: var(--b-surface-2); border-radius: 999px; padding: .05rem .5rem; }
+.menu-principal .panneau-categories a.tout { border-top: 1px solid var(--b-bord); border-radius: 0 0 .45rem .45rem; margin-top: .25rem; color: var(--b-vin); font-size: .85rem; }
 .bouton-panier {
   position: relative; display: inline-flex; align-items: center; gap: .45rem;
   min-height: 42px; padding: .4rem .9rem; border-radius: 999px;
@@ -85,12 +103,15 @@ h1, h2, h3, .serif {
   .menu-principal.ouvert {
     display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0;
     background: var(--b-surface); border-bottom: 1px solid var(--b-bord); padding: .5rem 1rem 1rem;
+    z-index: 10; box-shadow: 0 14px 28px rgba(33, 29, 28, .12);
   }
   .bouton-menu-mobile {
     display: inline-flex; margin-left: auto; width: 42px; height: 42px; align-items: center; justify-content: center;
     border: 1px solid var(--b-bord); background: var(--b-surface); border-radius: .5rem; color: var(--b-texte);
   }
   .bouton-panier .libelle { display: none; }
+  .menu-deroulant > button { width: 100%; justify-content: space-between; }
+  .panneau-categories { position: static; box-shadow: none; border: 0; border-left: 2px solid var(--b-bord); border-radius: 0; margin: .1rem 0 .3rem .8rem; padding: 0 0 0 .4rem; max-height: none; min-width: 0; }
   .marque-nom { font-size: .9rem; }
 }
 

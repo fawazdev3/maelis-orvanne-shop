@@ -115,6 +115,19 @@
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") fermerMenu(); });
   }
 
+  /* ---------- Menu des catégories ---------- */
+  var boutonCat = document.querySelector("[data-ouvrir-categories]");
+  if (boutonCat) {
+    var panneauCat = document.getElementById("liste-categories");
+    var basculerCat = function (ouvrir) {
+      panneauCat.hidden = !ouvrir;
+      boutonCat.setAttribute("aria-expanded", ouvrir ? "true" : "false");
+    };
+    boutonCat.addEventListener("click", function (e) { e.stopPropagation(); basculerCat(panneauCat.hidden); });
+    document.addEventListener("click", function (e) { if (!e.target.closest(".menu-deroulant")) basculerCat(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { basculerCat(false); } });
+  }
+
   /* ---------- Page panier : commande en 3 étapes ---------- */
   var zone = document.getElementById("zone-panier");
   var produits = {}; // id -> données à jour venant du serveur
