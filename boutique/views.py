@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, F, Q
+from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -140,13 +140,46 @@ def commander(request):
         return render(request, "boutique/panier.html", contexte_panier(form), status=400)
 
     quantites = form.cleaned_data["panier"]
-    produits = {p.pk: p for p in produits_en_ligne().filter(pk__in=quantites.keys(), en_stock=True)}
-    indisponibles = [pid for pid in quantites if pid not in produits]
-    if not produits:
-        form.add_error(None, "Les produits de votre panier ne sont plus disponibles.")
-        return render(request, "boutique/panier.html", contexte_panier(form), status=400)
-
     with transaction.atomic():
+        produits = {
+            p.pk: p
+            for p in produits_en_ligne()
+            .select_for_update()
+            .filter(pk__in=quantites.keys(), en_stock=True)
+            .order_by("pk")
+        }
+        indisponibles = [pid for pid in quantites if pid not in produits]
+        if not produits:
+            form.add_error(None, "Les produits de votre panier ne sont plus disponibles.")
+            return render(request, "boutique/panier.html", contexte_panier(form), status=400)
+
+        reservations = {
+            ligne["produit_id"]: ligne["quantite_reservee"]
+            for ligne in LigneCommande.objects.filter(
+                produit_id__in=produits,
+                commande__statut__in=[
+                    Commande.Statut.NOUVELLE,
+                    Commande.Statut.CONFIRMEE,
+                    Commande.Statut.EN_LIVRAISON,
+                ],
+            )
+            .values("produit_id")
+            .annotate(quantite_reservee=Sum("quantite"))
+        }
+        depassements = [
+            produits[pid].nom
+            for pid, quantite in quantites.items()
+            if pid in produits
+            and produits[pid].stock is not None
+            and quantite > produits[pid].stock - reservations.get(pid, 0)
+        ]
+        if depassements:
+            form.add_error(
+                None,
+                "Stock insuffisant pour : " + ", ".join(depassements) + ". Réduisez la quantité ou réessayez plus tard.",
+            )
+            return render(request, "boutique/panier.html", contexte_panier(form), status=400)
+
         commande = form.save(commit=False)
         commande.frais_livraison = TarifLivraison.frais_pour(commande.pays, commande.ville)
         commande.save()

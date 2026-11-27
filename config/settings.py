@@ -4,8 +4,11 @@ Réglages du projet Maélis Orvanne Shop.
 Les valeurs personnelles (clé secrète, numéro WhatsApp, base de données…) se trouvent
 dans le fichier .env à la racine du projet. Modèle : .env.exemple
 """
+import ipaddress
 import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,20 +30,25 @@ def charger_env(chemin):
 charger_env(BASE_DIR / ".env")
 
 CLE_DE_DEVELOPPEMENT = "dev-uniquement-a-changer-en-production-3f9a8c1e7b2d"
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", CLE_DE_DEVELOPPEMENT)
-
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
-
-if not DEBUG and SECRET_KEY in ("", CLE_DE_DEVELOPPEMENT):
-    from django.core.exceptions import ImproperlyConfigured
-
+DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
+if DEBUG:
+    SECRET_KEY = SECRET_KEY or CLE_DE_DEVELOPPEMENT
+elif (
+    not SECRET_KEY
+    or SECRET_KEY in (CLE_DE_DEVELOPPEMENT, "remplacez-moi-par-une-longue-cle-secrete")
+    or len(SECRET_KEY) < 50
+):
     raise ImproperlyConfigured("En production, définissez DJANGO_SECRET_KEY (une longue clé secrète unique).")
 
+HOTES_CONFIGURES = os.environ.get("DJANGO_ALLOWED_HOSTS", "").strip()
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for h in (HOTES_CONFIGURES or "localhost,127.0.0.1").split(",")
     if h.strip()
 ]
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured("En production, définissez DJANGO_ALLOWED_HOSTS avec les domaines du site.")
 
 CSRF_TRUSTED_ORIGINS = [
     o.strip()
@@ -94,11 +102,14 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Base de données : SQLite en développement.
 # Pour PostgreSQL en production, remplir les variables POSTGRES_*.
-if os.environ.get("POSTGRES_DB", "").strip():
+POSTGRES_DB = os.environ.get("POSTGRES_DB", "").strip()
+if not DEBUG and not POSTGRES_DB:
+    raise ImproperlyConfigured("En production, configurez PostgreSQL avec POSTGRES_DB.")
+if POSTGRES_DB:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ["POSTGRES_DB"],
+            "NAME": POSTGRES_DB,
             "USER": os.environ.get("POSTGRES_USER", ""),
             "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
             "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
@@ -130,7 +141,41 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT_ENV = os.environ.get("DJANGO_MEDIA_ROOT", "").strip()
+if not DEBUG and not MEDIA_ROOT_ENV:
+    raise ImproperlyConfigured("En production, définissez DJANGO_MEDIA_ROOT vers un stockage persistant.")
+MEDIA_ROOT = Path(MEDIA_ROOT_ENV) if MEDIA_ROOT_ENV else BASE_DIR / "media"
+
+if DEBUG:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "maelis-orvanne",
+        }
+    }
+else:
+    CACHE_URL = os.environ.get("DJANGO_CACHE_URL", "").strip()
+    if not CACHE_URL:
+        raise ImproperlyConfigured("En production, configurez Redis avec DJANGO_CACHE_URL.")
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": CACHE_URL,
+        }
+    }
+
+TRUSTED_PROXIES = []
+for proxy in os.environ.get("DJANGO_TRUSTED_PROXY_IPS", "").split(","):
+    proxy = proxy.strip()
+    if proxy:
+        try:
+            TRUSTED_PROXIES.append(ipaddress.ip_network(proxy, strict=False))
+        except ValueError as erreur:
+            raise ImproperlyConfigured(f"Adresse de proxy invalide dans DJANGO_TRUSTED_PROXY_IPS: {proxy}") from erreur
+
+DERRIERE_PROXY = os.environ.get("DJANGO_DERRIERE_PROXY") == "1"
+if not DEBUG and DERRIERE_PROXY and not TRUSTED_PROXIES:
+    raise ImproperlyConfigured("Configurez DJANGO_TRUSTED_PROXY_IPS pour les adresses de vos proxies.")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -162,12 +207,14 @@ SESSION_COOKIE_AGE = 60 * 60 * 12  # une session du back-office dure 12 h
 
 if not DEBUG:
     # En ligne, tout passe en HTTPS
-    SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "1") == "1"
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "2592000"))  # 30 jours
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    if os.environ.get("DJANGO_DERRIERE_PROXY") == "1":
+    if SECURE_HSTS_SECONDS <= 0:
+        raise ImproperlyConfigured("DJANGO_HSTS_SECONDS doit être supérieur à zéro en production.")
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get("DJANGO_HSTS_INCLUDE_SUBDOMAINS") == "1"
+    if DERRIERE_PROXY:
         SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Limites anti-abus

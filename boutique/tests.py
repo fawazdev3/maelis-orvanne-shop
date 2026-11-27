@@ -1,9 +1,11 @@
 import json
+from ipaddress import ip_network
 
-from django.test import override_settings
-
-from config.tests_base import TestCase
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
+
+from config.limites import adresse_ip
+from config.tests_base import TestCase
 
 from .models import Categorie, Commande, LigneCommande, Produit, ReglagesSite, TarifLivraison
 from .pays import normaliser_telephone
@@ -87,6 +89,21 @@ class SitePublicTests(TestCase):
         self.client.post(reverse("boutique:commander"), self.donnees([{"id": self.the.pk, "qte": 5000}]))
         self.assertEqual(Commande.objects.get().lignes.get().quantite, 99)
 
+    def test_stock_disponible_et_reservations_de_commandes(self):
+        produit = Produit.objects.create(categorie=self.cat, nom="Stock limité", prix=1000, stock=3)
+        panier = [{"id": produit.pk, "qte": 4}]
+        self.assertEqual(self.client.post(reverse("boutique:commander"), self.donnees(panier)).status_code, 400)
+        self.assertEqual(Commande.objects.count(), 0)
+
+        panier[0]["qte"] = 2
+        self.assertEqual(self.client.post(reverse("boutique:commander"), self.donnees(panier)).status_code, 302)
+        self.assertEqual(self.client.post(reverse("boutique:commander"), self.donnees(panier)).status_code, 400)
+
+        commande = Commande.objects.get()
+        commande.statut = Commande.Statut.ANNULEE
+        commande.save()
+        self.assertEqual(self.client.post(reverse("boutique:commander"), self.donnees(panier)).status_code, 302)
+
     def test_telephone_invalide(self):
         r = self.client.post(reverse("boutique:commander"), self.donnees([{"id": self.the.pk, "qte": 1}], telephone="123"))
         self.assertEqual(r.status_code, 400)
@@ -117,6 +134,22 @@ class SitePublicTests(TestCase):
     def test_jeton_inconnu(self):
         r = self.client.get("/commande/00000000-0000-0000-0000-000000000000/merci/")
         self.assertEqual(r.status_code, 404)
+
+
+class AdresseIPTests(TestCase):
+    @override_settings(TRUSTED_PROXIES=[ip_network("10.0.0.1/32")])
+    def test_ignore_un_x_forwarded_for_envoye_sans_proxy_fiable(self):
+        request = RequestFactory().get(
+            "/", REMOTE_ADDR="203.0.113.9", HTTP_X_FORWARDED_FOR="198.51.100.4"
+        )
+        self.assertEqual(adresse_ip(request), "203.0.113.9")
+
+    @override_settings(TRUSTED_PROXIES=[ip_network("10.0.0.1/32")])
+    def test_utilise_le_client_reel_depuis_un_proxy_fiable(self):
+        request = RequestFactory().get(
+            "/", REMOTE_ADDR="10.0.0.1", HTTP_X_FORWARDED_FOR="198.51.100.4, 203.0.113.9"
+        )
+        self.assertEqual(adresse_ip(request), "203.0.113.9")
 
 
 class NumerosTests(TestCase):

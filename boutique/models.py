@@ -162,6 +162,7 @@ class Commande(models.Model):
         return self.numero or f"Commande {self.pk}"
 
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
         # Date d'encaissement remplie ou effacée automatiquement
         if self.paiement_recu and not self.date_paiement:
             self.date_paiement = timezone.now()
@@ -181,9 +182,13 @@ class Commande(models.Model):
             self.date_livraison = timezone.now()
         elif self.statut != self.Statut.LIVREE:
             self.date_livraison = None
-        super().save(*args, **kwargs)
-        if self.pk and not kwargs.get("update_fields"):
-            self.synchroniser_stock()
+        synchroniser = self.pk and (not update_fields or "statut" in update_fields)
+        if synchroniser:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+                self.synchroniser_stock()
+        else:
+            super().save(*args, **kwargs)
 
     def synchroniser_stock(self):
         """Retire le stock quand la commande passe « livrée », le remet si elle ne l'est plus."""
@@ -191,12 +196,19 @@ class Commande(models.Model):
         if livree == self.stock_deduit:
             return
         with transaction.atomic():
-            for ligne in self.lignes.select_related("produit"):
-                p = ligne.produit
-                if p is None or p.stock is None:
+            lignes = list(self.lignes.values_list("produit_id", "quantite"))
+            produits = {
+                produit.pk: produit
+                for produit in Produit.objects.select_for_update()
+                .filter(pk__in=[produit_id for produit_id, _ in lignes if produit_id is not None])
+                .order_by("pk")
+            }
+            for produit_id, quantite in lignes:
+                produit = produits.get(produit_id)
+                if produit is None or produit.stock is None:
                     continue
-                p.stock = max(0, p.stock - ligne.quantite) if livree else p.stock + ligne.quantite
-                p.save(update_fields=["stock", "en_stock", "date_modification"])
+                produit.stock = max(0, produit.stock - quantite) if livree else produit.stock + quantite
+                produit.save(update_fields=["stock", "en_stock", "date_modification"])
             self.stock_deduit = livree
             Commande.objects.filter(pk=self.pk).update(stock_deduit=livree)
 

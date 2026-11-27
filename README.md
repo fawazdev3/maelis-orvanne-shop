@@ -89,8 +89,14 @@ Copié depuis `.env.exemple`. Il ne doit jamais être partagé ni envoyé sur Gi
 | `DJANGO_ALLOWED_HOSTS` | Domaines autorisés, ex. `maelisorvanne.com,www.maelisorvanne.com` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Ex. `https://maelisorvanne.com,https://www.maelisorvanne.com` |
 | `DJANGO_DERRIERE_PROXY` | `1` si l'hébergeur passe par un proxy HTTPS |
+| `DJANGO_TRUSTED_PROXY_IPS` | IP/CIDR des reverse proxies de confiance, séparés par des virgules |
+| `DJANGO_HSTS_INCLUDE_SUBDOMAINS` | `1` uniquement si tous les sous-domaines sont exclusivement en HTTPS |
+| `DJANGO_MEDIA_ROOT` | Répertoire d'un volume persistant pour les photos (obligatoire en production) |
+| `DJANGO_CACHE_URL` | URL Redis du cache partagé (obligatoire en production) |
 | `BOUTIQUE_WHATSAPP`, `BOUTIQUE_PAYS` | Valeurs par défaut. Le back-office (Réglages du site) les remplace. |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Base PostgreSQL. Si `POSTGRES_DB` est vide, SQLite est utilisé. |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | Base PostgreSQL. SQLite est réservé au développement. |
+
+En production, configurez le reverse proxy pour transmettre le protocole HTTPS et une adresse client fiable, et pour écraser ou compléter `X-Forwarded-For` avec l'adresse réelle du client. `DJANGO_TRUSTED_PROXY_IPS` doit contenir l'adresse (ou le réseau) du proxy qui se connecte à Django. Les paramètres de production refusent de démarrer si PostgreSQL, Redis ou un chemin de médias persistant ne sont pas configurés. Le fichier `requirements.txt` contient les pilotes nécessaires.
 
 ### Réglages modifiables sans toucher au code
 Depuis le back-office :
@@ -155,22 +161,25 @@ maelis_orvanne/
 - **Protections Django :** CSRF, échappement des textes (XSS) et interdiction d'affichage dans un cadre (clickjacking).
 - **Photos :** contenu vérifié (JPG, PNG ou WebP, 5 Mo maximum).
 - **Export Excel :** les formules glissées dans les données clients sont neutralisées.
-- **En production (`DJANGO_DEBUG=0`) :** HTTPS obligatoire, cookies sécurisés et HSTS. Le site refuse de démarrer sans une vraie clé secrète.
+- **En production (`DJANGO_DEBUG=0`) :** HTTPS obligatoire, cookies sécurisés et HSTS sur le domaine (30 jours par défaut, sans sous-domaines). Le site refuse de démarrer sans une clé secrète de production valide.
 
 Vérification avant la mise en ligne : `python manage.py check --deploy`
+`security.W005` rappelle que les sous-domaines ne sont pas inclus par défaut. Définissez `DJANGO_HSTS_INCLUDE_SUBDOMAINS=1` uniquement si chacun doit exclusivement utiliser HTTPS. `security.W021` concerne l'option HSTS preload, volontairement désactivée ; ne l'activez qu'après avoir confirmé que tous les sous-domaines concernés utilisent HTTPS et que vous souhaitez inscrire le domaine dans la liste preload des navigateurs.
 
 ---
 
 ## Mise en production
 
-1. Définir les variables du `.env` de production : `DJANGO_DEBUG=0`, clé secrète, domaines et PostgreSQL. Pour PostgreSQL, installer aussi `psycopg[binary]`.
-2. `python manage.py migrate`
-3. `python manage.py collectstatic`
-4. `python manage.py createsuperuser`
-5. Dans le back-office :
+1. Préparer PostgreSQL, Redis, un volume persistant pour `media/` et un reverse proxy HTTPS.
+2. Définir les variables du `.env` de production : `DJANGO_DEBUG=0`, une clé secrète unique, domaines, PostgreSQL, `DJANGO_CACHE_URL` et `DJANGO_MEDIA_ROOT`. Si un reverse proxy est utilisé, définir `DJANGO_DERRIERE_PROXY=1` et `DJANGO_TRUSTED_PROXY_IPS`.
+3. `python manage.py check --deploy` (corriger les avertissements applicables ; `security.W005` et `security.W021` correspondent aux choix HSTS décrits ci-dessus).
+4. `python manage.py migrate`
+5. `python manage.py collectstatic`
+6. `python manage.py createsuperuser`
+7. Dans le back-office :
    - régler le numéro WhatsApp et les pays livrés ;
    - régler les tarifs de livraison ;
    - retirer les données d'exemple ;
    - télécharger régulièrement une sauvegarde (Réglages du site → Maintenance).
 
-   Le dossier `media/` (photos des produits) se sauvegarde à part.
+   Le volume défini par `DJANGO_MEDIA_ROOT` (photos des produits) se sauvegarde à part.
